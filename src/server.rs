@@ -21,7 +21,7 @@ pub struct GameController {
 
 impl GameController {
     pub fn new(map : Map) -> GameController {
-        let l = 2;
+        let l = 1;
         GameController{clients:Vec::new(),player_limit:l,map:map,error_counter:vec![0;l],error_limit:100}
     }
     
@@ -66,6 +66,23 @@ impl GameController {
             }
         }
     }
+
+    fn announce_message(&mut self,msg : String) {
+        let message_byte = &msg.into_bytes();
+        for client in &mut self.clients { 
+            client.write(
+                message_byte
+             );
+        }
+    }
+    fn announce_message_byte(&mut self,msg : &[u8]) {
+        for client in &mut self.clients { 
+            client.write(
+                msg
+             );
+        }
+    }
+
     pub fn start_game(&mut self) {
         self.distribute_map();
 
@@ -121,52 +138,15 @@ impl GameController {
                     }
                 }
             };
-            //thread::sleep(Duration::from_millis(100));
-            //println!("{}",self.map.coordinate_to_json());
-            let received_data = format!("{}",self.map.coordinate_to_json());
-            //println!("{}",received_data);
-            //let bytes = &received_data[0..received_data.len()];
-            for i in 0..self.clients.len() {
-                self.clients[i].write(
-                    received_data.as_bytes()
-                 );
-            }
+            let received_data = self.map.coordinate_to_json();
+            self.announce_message(received_data);
             count += 1;
-            //println!("{:?}",bytes);
         }
     }
 
     pub fn distribute_map(&mut self) {
-        //let mut error_clients : Vec<&TcpStream> = vec![];
-        let mut error_clients_index : Vec<usize> = vec![];
-        let mut count = 0;
-        for mut client in &self.clients {
-            match client.write(format!("{}",self.map.map_to_string()).as_bytes()) {
-                Ok(size) => {
-                    println!("Write to {:?}, size = {}",&client,size);
-                }
-                Err(_) => {
-                    println!("[Error]Could not send map data. The stream will exclude");
-                    error_clients_index.push(count);
-                }
-            }
-            let count_value = r#"{"value":""#.to_string() + &self.clients.len().to_string() + r#""}|"#;
-            match client.write(count_value.as_bytes()) {
-                Ok(size) => {
-                    println!("Write to {:?}, size = {}",&client,size);
-                }
-                Err(_) => {
-                    println!("[Error]Could not send map data. The stream will exclude");
-                    error_clients_index.push(count);
-                }
-            }
-            
-            count += 1;
-        }
-        for e in &error_clients_index {
-            self.clients.remove(*e);
-        }
-        println!("Map distributed");
+        let map_data = self.map.map_to_string();
+        self.announce_message(map_data);
     }
 }
 
