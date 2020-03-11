@@ -97,6 +97,8 @@ impl GameController {
         let mut count = 0;
 
         loop { //main game loop 
+            self.map.pacman.x += 1.;
+            println!("{}",self.map.pacman.coordinate_to_json());
             for i in 0..self.clients.len() {
                 let cloned = buffer_streams.clone();
                 let (sender,receiver) = mpsc::channel();
