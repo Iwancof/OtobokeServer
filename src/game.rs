@@ -1,6 +1,7 @@
 use std::fs;
 use std::fmt;
 
+
 const size : f32 = 1.05;
 
 pub struct Player {
@@ -95,6 +96,20 @@ impl Map {
             println!("{}",e.on_map_coordinate());
         }
     }
+    pub fn print_map(&self,wos : usize,hos : usize) {
+        let p : Vec<PlayerOnMap> = self.players.iter().map(|x| x.on_map_coordinate()).collect();
+        for y in 0..self.height {
+            for x in 0..self.width {
+                for p in &p {
+                    if x == p.x as usize && y == p.y as usize {
+                        super::print_on("#".to_string(),x,self.height - y);
+                    } else {
+                        super::print_on(format!("{}",self.field[x][y]),x ,y);
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl Player {
@@ -110,8 +125,8 @@ impl Player {
     }
     pub fn on_map_coordinate(&self) -> PlayerOnMap { //To integer
         PlayerOnMap::new(
-            (self.x / size) as i32,
-            (self.y / size) as i32,
+            (self.x / size).ceil() as i32,
+            (self.y / size).ceil() as i32,
             (self.z / size) as i32
         )
     }

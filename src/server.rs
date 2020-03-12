@@ -22,7 +22,7 @@ pub struct GameController {
 
 impl GameController {
     pub fn new(map : Map) -> GameController {
-        let l = 1; //Players
+        let l = 2; //Players
         GameController{
             clients : Vec::new(),
             player_limit : l,
@@ -53,10 +53,14 @@ impl GameController {
     }
    
     pub fn start_game(&mut self) {
+        self.announce_message("StartGame|".to_string());
+
+
         let clone = self.map.clone();
         self.timer.subscribe(Box::new(move || {
-            clone.lock().unwrap().print_onmap_coordinate();
-        }),500);
+            //clone.lock().unwrap().print_onmap_coordinate();
+            //clone.lock().unwrap().print_map(0,0);
+        }),100);
         self.timer.start(); //Start doing tasks
 
         self.distribute_map();

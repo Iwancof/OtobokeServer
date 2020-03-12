@@ -38,3 +38,8 @@ fn open_server(map : game::Map) {
     g.start_game();
 }
 
+fn print_on(msg : String,wos : usize,hos : usize) {
+    
+    print!("\x1b[{};{}H{}",hos,wos,msg);
+}
+
