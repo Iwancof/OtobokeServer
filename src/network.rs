@@ -44,13 +44,13 @@ impl GameController {
 
     pub fn player_join(&mut self,mut stream : net::TcpStream) {
         self.clients.push(stream);
-        self.map.players.push(Player::new(0.0,0.0,0.0));
+        self.map.lock().unwrap().players.push(Player::new(0.0,0.0,0.0));
     }
 }
 
 pub fn enable_sender(clone_stream : Arc<Mutex<Vec<BufStream>>>,sender : mpsc::Sender<String>,i : usize) {
     thread::spawn(move || {
-        let mut locked = clone_stream.lock().unwrap();
+        let mut locked = clone_stream.lock().unwrap(); //TODO: use match
 
         let mut ret = String::new();
 

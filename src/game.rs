@@ -1,9 +1,18 @@
 use std::fs;
+use std::fmt;
+
+const size : f32 = 1.05;
 
 pub struct Player {
     pub x : f32,
     pub y : f32,
     pub z : f32,
+}
+
+pub struct PlayerOnMap {
+    pub x : i32,
+    pub y : i32,
+    pub z : i32,
 }
 
 pub struct Map {
@@ -59,7 +68,7 @@ impl Map {
         }
     }
 
-    pub fn map_to_string(&self) -> String {
+    pub fn map_to_string(&self) -> String { //String is Json
         let mut ret = String::new();
         for y in 0..self.height {
             for x in 0..self.width {
@@ -81,6 +90,11 @@ impl Map {
         ret += "}|";
         ret
     }
+    pub fn print_onmap_coordinate(&self) {
+        for e in &self.players {
+            println!("{}",e.on_map_coordinate());
+        }
+    }
 }
 
 impl Player {
@@ -93,5 +107,24 @@ impl Player {
         ret += &format!(r#""x":"{}","y":"{}","z":"{}""#,self.x,self.y,self.z);
         ret += "}";
         ret
+    }
+    pub fn on_map_coordinate(&self) -> PlayerOnMap { //To integer
+        PlayerOnMap::new(
+            (self.x / size) as i32,
+            (self.y / size) as i32,
+            (self.z / size) as i32
+        )
+    }
+}
+
+impl PlayerOnMap {
+    pub fn new(x : i32,y : i32,z : i32) -> PlayerOnMap {
+        PlayerOnMap{x:x,y:y,z:z}
+    }
+}
+
+impl fmt::Display for PlayerOnMap {
+    fn fmt(&self,f : &mut fmt::Formatter) -> fmt::Result {
+        write!(f,"({},{},{})",self.x,self.y,self.z)
     }
 }

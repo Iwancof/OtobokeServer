@@ -11,19 +11,24 @@ use regex::Regex;
 
 use super::game::{Map,Player};
 use super::network;
+use super::time::{LoopTimer};
 
 pub struct GameController {
     pub clients : Vec<TcpStream>,
     pub player_limit : usize,
-    pub map : Map,
-    pub error_counter : Vec<i32>,
-    pub error_limit : i32,
+    pub map : Arc<Mutex<Map>>,
+    pub timer : LoopTimer, //This is doing tasks per the time
 }
 
 impl GameController {
     pub fn new(map : Map) -> GameController {
-        let l = 1;
-        GameController{clients:Vec::new(),player_limit:l,map:map,error_counter:vec![0;l],error_limit:100}
+        let l = 1; //Players
+        GameController{
+            clients : Vec::new(),
+            player_limit : l,
+            map : Arc::new(Mutex::new(map)),
+            timer : LoopTimer::new(),
+        }
     }
     
     pub fn wait_for_players(&mut self) {
@@ -43,11 +48,17 @@ impl GameController {
     }
 
     pub fn distribute_map(&mut self) {
-        let map_data = self.map.map_to_string();
+        let map_data = self.map.lock().unwrap().map_to_string();
         self.announce_message(map_data);
     }
-    
+   
     pub fn start_game(&mut self) {
+        let clone = self.map.clone();
+        self.timer.subscribe(Box::new(move || {
+            clone.lock().unwrap().print_onmap_coordinate();
+        }),500);
+        self.timer.start(); //Start doing tasks
+
         self.distribute_map();
 
         //let mut cant_get_data_count = vec![0,self.clients.len()];
@@ -61,8 +72,7 @@ impl GameController {
         //let mut count = 0;
 
         loop { //main game loop 
-            self.map.pacman.x += 1.; //for test
-            println!("{}",self.map.pacman.coordinate_to_json());
+            //self.map.pacman.x += 1.; //for test
             for i in 0..self.clients.len() {
                 let cloned = buffer_streams.clone();
                 let (sender,receiver) = mpsc::channel(); //Sender<String>,Receiver<String>
@@ -71,19 +81,19 @@ impl GameController {
 
                 match receiver.recv_timeout(Duration::from_millis(1000)) {
                     Ok(s) => {
-                        print!("\x1b[1;{}Hclient[{}]={}",i * 40 + 10,i,s);
+                        //print!("\x1b[1;{}Hclient[{}]={}",i * 40 + 10,i,s);
                         let ret = network::parse_client_info(s);
-                        self.map.players[i].x = ret[0];
-                        self.map.players[i].y = ret[1];
-                        self.map.players[i].z = ret[2];
+                        self.map.lock().unwrap().players[i].x = ret[0];
+                        self.map.lock().unwrap().players[i].y = ret[1];
+                        self.map.lock().unwrap().players[i].z = ret[2];
                     }
                     Err(_) => { 
-                        continue; 
+                        continue; //Could not receive data
                     }
                 }
             };
-            let received_data = self.map.coordinate_to_json();
-            self.announce_message(received_data);
+            let received_data = self.map.lock().unwrap().coordinate_to_json();
+            self.announce_message(received_data); //Announce clients coordinate to clients
         }
     }
 
@@ -104,7 +114,7 @@ impl BufStream {
     }
 }
 
-fn print_typename<T>(_ : T) {
+pub fn print_typename<T>(_ : T) {
     println!("type = {}",std::any::type_name::<T>());
 }
 
