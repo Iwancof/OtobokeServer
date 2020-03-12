@@ -1,8 +1,12 @@
 mod server;
 mod game;
+mod network;
+
 use std::thread;
 use std::time::Duration;
 use std::env;
+
+
 
 fn main() { //For one game
     println!("\x1b[2J");
