@@ -22,7 +22,7 @@ pub struct GameController {
 
 impl GameController {
     pub fn new(map : Map) -> GameController {
-        let l = 2; //Players
+        let l = 1; //Players
         GameController{
             clients : Vec::new(),
             player_limit : l,
@@ -50,6 +50,7 @@ impl GameController {
     pub fn distribute_map(&mut self) {
         let map_data = self.map.lock().unwrap().map_to_string();
         self.announce_message(map_data);
+        println!("map disributed");
     }
    
     pub fn start_game(&mut self) {
