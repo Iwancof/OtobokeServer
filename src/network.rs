@@ -8,6 +8,7 @@ use regex::Regex;
 
 use std::sync::{mpsc,Arc,Mutex};
 use std::thread;
+use std::ops::{Deref,DerefMut};
 
 use super::server::{GameController,BufStream};
 use super::game::{Player};
@@ -15,14 +16,14 @@ use super::game::{Player};
 impl GameController {
     pub fn announce_message(&mut self,msg : String) {
         let message_byte = &msg.into_bytes();
-        for client in &mut self.clients { 
+        for client in &mut *self.clients.lock().unwrap().deref_mut() { 
             client.write(
                 message_byte
              );
         }
     }
     pub fn announce_message_byte(&mut self,msg : &[u8]) {
-        for client in &mut self.clients { 
+        for client in &mut *self.clients.lock().unwrap().deref_mut() { 
             client.write(
                 msg
              );
@@ -30,7 +31,7 @@ impl GameController {
     }
 
     pub fn player_join_initialize(&mut self,mut stream : net::TcpStream) {
-        let json = "{".to_string() + &format!(r#""counter":{}"#,self.clients.len()) + "}|";
+        let json = "{".to_string() + &format!(r#""counter":{}"#,(*self.clients.lock().unwrap().deref()).len()) + "}|";
         match send_message(&stream,json) {
             Ok(_) => {
                 println!("player joined! player details : {:?}",stream);
@@ -43,9 +44,18 @@ impl GameController {
     }
 
     pub fn player_join(&mut self,mut stream : net::TcpStream) {
-        self.clients.push(stream);
+        self.clients.lock().unwrap().push(stream);
         self.map.lock().unwrap().players.push(Player::new(0.0,0.0,0.0));
     }
+    
+    /*
+    pub fn deref(&mut self) -> Result<&Vec<TcpStream>,String> {
+        match self.clients.lock() {
+            Ok(x) => Ok(x.deref()),
+            Err(_) => Err("Could not lock clients".to_string()),
+        }
+    }
+    */
 }
 
 pub fn enable_sender(clone_stream : Arc<Mutex<Vec<BufStream>>>,sender : mpsc::Sender<String>,i : usize) {

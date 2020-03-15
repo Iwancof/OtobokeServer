@@ -9,12 +9,14 @@ use std::thread;
 use std::time::Duration;
 use regex::Regex;
 
+use std::ops::{Deref,DerefMut};
+
 use super::game::{Map,Player};
 use super::network;
 use super::time::{LoopTimer};
 
 pub struct GameController {
-    pub clients : Vec<TcpStream>,
+    pub clients : Arc<Mutex<Vec<TcpStream>>>,
     pub player_limit : usize,
     pub map : Arc<Mutex<Map>>,
     pub timer : LoopTimer, //This is doing tasks per the time
@@ -22,9 +24,9 @@ pub struct GameController {
 
 impl GameController {
     pub fn new(map : Map) -> GameController {
-        let l = 1; //Players
+        let l = 2; //Players
         GameController{
-            clients : Vec::new(),
+            clients : Arc::new(Mutex::new(Vec::new())),
             player_limit : l,
             map : Arc::new(Mutex::new(map)),
             timer : LoopTimer::new(),
@@ -33,14 +35,15 @@ impl GameController {
     
     pub fn wait_for_players(&mut self) {
         let listener = net::TcpListener::bind("localhost:8080").unwrap(); //Create Listener
+        let mut count = 0;
 
         for stream in listener.incoming() { //Wait for players
             match stream {
-                Ok(stream) => { self.player_join_initialize(stream) },
+                Ok(stream) => { self.player_join_initialize(stream);count += 1; },
                 Err(_) => { println!("Unknown client detected.") }
             }
 
-            if self.clients.len() >= self.player_limit {
+            if count >= self.player_limit {
                 println!("Player limit reached. The game will start soon!");
                 return;
             }
@@ -50,27 +53,29 @@ impl GameController {
     pub fn distribute_map(&mut self) {
         let map_data = self.map.lock().unwrap().map_to_string();
         self.announce_message(map_data);
+        self.announce_message(
+            r#"{"value":""#.to_string() + &(self.player_limit.to_string()) + r#""}|"#);
         println!("map disributed");
     }
    
     pub fn start_game(&mut self) {
         self.announce_message("StartGame|".to_string());
 
-
-        let clone = self.map.clone();
+        let clone_client = self.clients.clone();
+        let clone_map = self.map.clone();
         self.timer.subscribe(Box::new(move || {
-            //clone.lock().unwrap().print_onmap_coordinate();
-            //clone.lock().unwrap().print_map(0,0);
-        }),100);
+            let msg = &clone_map.lock().unwrap().coordinate_to_json_pacman().into_bytes();
+            for client in &mut *clone_client.lock().unwrap().deref_mut() {
+                //client.write(msg);
+            }
+        }),200);
         self.timer.start(); //Start doing tasks
 
         self.distribute_map();
 
-        //let mut cant_get_data_count = vec![0,self.clients.len()];
-
         let buffer_streams : Arc<Mutex<Vec<BufStream>>>
             = Arc::new(Mutex::new(
-            self.clients.iter().map(
+            self.clients.lock().unwrap().deref_mut().iter().map(
             |c| BufStream::new(c,100)
         ).collect()
             ));
@@ -78,7 +83,7 @@ impl GameController {
 
         loop { //main game loop 
             //self.map.pacman.x += 1.; //for test
-            for i in 0..self.clients.len() {
+            for i in 0..self.clients.lock().unwrap().deref().len() {
                 let cloned = buffer_streams.clone();
                 let (sender,receiver) = mpsc::channel(); //Sender<String>,Receiver<String>
 

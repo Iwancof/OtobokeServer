@@ -21,12 +21,12 @@ pub struct Map {
     pub height :usize,
     pub field : Vec<Vec<i32>>,
     pub players : Vec<Player>,
-    pub pacman : Player,
+    pub pacman : PlayerOnMap,
 }
 
 impl Map {
     pub fn new(w : usize ,h : usize) -> Map {
-        Map{width:w,height:h,field:vec![vec![0;h];w],players:vec![],pacman:Player::new(3.,3.,3.)}
+        Map{width:w,height:h,field:vec![vec![0;h];w],players:vec![],pacman:PlayerOnMap::new(0,0,0)}
     }
 
     pub fn create_by_filename(file_name : String) -> Map {
@@ -57,7 +57,7 @@ impl Map {
             });
         }
 
-        Map{width:wid - 1,height:hei,field:map_tmp,players:vec![],pacman:Player::new(3.,3.,3.)}
+        Map{width:wid - 1,height:hei,field:map_tmp,players:vec![],pacman:PlayerOnMap::new(0,0,0)}
     }
     
     pub fn show_map(&self) {
@@ -86,11 +86,24 @@ impl Map {
             ret += &(self.players[i].coordinate_to_json() + ",");
         }
         ret += &(self.players[self.players.len() - 1].coordinate_to_json());
+        ret += r#"]}|"#;
+        ret
+        /*
         ret += r#"],"Pacman":"#;
         ret += &self.pacman.coordinate_to_json();
         ret += "}|";
         ret
+        */
     }
+    pub fn coordinate_to_json_pacman(&self) -> String {
+        let mut ret = String::new();
+        ret += r#"{"Pacman":"#;
+        ret += &(self.pacman.coordinate_to_json());
+        ret += r#"}|"#;
+        ret
+              
+    }
+
     pub fn print_onmap_coordinate(&self) {
         for e in &self.players {
             println!("{}",e.on_map_coordinate());
@@ -136,6 +149,14 @@ impl PlayerOnMap {
     pub fn new(x : i32,y : i32,z : i32) -> PlayerOnMap {
         PlayerOnMap{x:x,y:y,z:z}
     }
+    pub fn coordinate_to_json(&self) -> String {
+        let mut ret = String::new();
+        ret += "{";
+        ret += &format!(r#""x":"{}","y":"{}","z":"{}""#,self.x,self.y,self.z);
+        ret += "}";
+        ret
+
+    }
 }
 
 impl fmt::Display for PlayerOnMap {
@@ -143,3 +164,5 @@ impl fmt::Display for PlayerOnMap {
         write!(f,"({},{},{})",self.x,self.y,self.z)
     }
 }
+
+//fn DebugMoveNext(
