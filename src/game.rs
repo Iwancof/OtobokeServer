@@ -22,11 +22,12 @@ pub struct Map {
     pub field : Vec<Vec<i32>>,
     pub players : Vec<Player>,
     pub pacman : PlayerOnMap,
+    pub count : usize,
 }
 
 impl Map {
     pub fn new(w : usize ,h : usize) -> Map {
-        Map{width:w,height:h,field:vec![vec![0;h];w],players:vec![],pacman:PlayerOnMap::new(0,0,0)}
+        Map{width:w,height:h,field:vec![vec![0;h];w],players:vec![],pacman:PlayerOnMap::new(9,13,0),count:0}
     }
 
     pub fn create_by_filename(file_name : String) -> Map {
@@ -57,7 +58,8 @@ impl Map {
             });
         }
 
-        Map{width:wid - 1,height:hei,field:map_tmp,players:vec![],pacman:PlayerOnMap::new(0,0,0)}
+        Map{width:wid -
+        1,height:hei,field:map_tmp,players:vec![],pacman:PlayerOnMap::new(9,15,0),count:0}
     }
     
     pub fn show_map(&self) {
@@ -81,7 +83,7 @@ impl Map {
     }
     pub fn coordinate_to_json(&self) -> String {
         let mut ret = String::new();
-        ret += r#"{"Coordinate":["#;
+        ret += r#"PLAYER;{"Coordinate":["#;
         for i in 0..self.players.len() - 1 {
             ret += &(self.players[i].coordinate_to_json() + ",");
         }
@@ -97,7 +99,7 @@ impl Map {
     }
     pub fn coordinate_to_json_pacman(&self) -> String {
         let mut ret = String::new();
-        ret += r#"{"Pacman":"#;
+        ret += r#"PACMAN;{"Pacman":"#;
         ret += &(self.pacman.coordinate_to_json());
         ret += r#"}|"#;
         ret
@@ -123,6 +125,46 @@ impl Map {
             }
         }
     }
+    pub fn debug_next(&mut self) {
+        let dif = vec![
+            set::new(1,0),
+            set::new(1,0),
+            set::new(1,0),
+            set::new(1,0),
+            set::new(1,0),
+            set::new(1,0),
+            set::new(1,0),
+            set::new(1,0),
+            set::new(1,0),
+            set::new(0,1),
+            set::new(0,1),
+            set::new(0,1),
+            set::new(0,1),
+            set::new(0,1),
+            set::new(0,1),
+            set::new(-1,0),
+            set::new(-1,0),
+            set::new(-1,0),
+            set::new(-1,0),
+            set::new(-1,0),
+            set::new(-1,0),
+            set::new(-1,0),
+            set::new(-1,0),
+            set::new(-1,0),
+            set::new(0,-1),
+            set::new(0,-1),
+            set::new(0,-1),
+            set::new(0,-1),
+            set::new(0,-1),
+            set::new(0,-1),
+        ];
+        self.pacman.x += dif[self.count].x;
+        self.pacman.y += dif[self.count].y;
+        
+        self.count += 1;
+        self.count %= 30;
+        
+    }
 }
 
 impl Player {
@@ -142,6 +184,17 @@ impl Player {
             (self.y / size).ceil() as i32,
             (self.z / size) as i32
         )
+    }
+}
+
+struct set {
+    x : i32,
+    y : i32,
+}
+
+impl set {
+    pub fn new(x:i32,y:i32) -> set {
+        set{x:x,y:y}
     }
 }
 

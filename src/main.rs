@@ -29,6 +29,7 @@ fn main() { //For one game
 
 fn open_server(map : game::Map) {
     let mut g = server::GameController::new(map);
+    g.show_game_details();
     println!("Game initialized");
 
     g.wait_for_players();

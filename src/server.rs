@@ -24,7 +24,7 @@ pub struct GameController {
 
 impl GameController {
     pub fn new(map : Map) -> GameController {
-        let l = 2; //Players
+        let l = 1; //Players
         GameController{
             clients : Arc::new(Mutex::new(Vec::new())),
             player_limit : l,
@@ -33,6 +33,10 @@ impl GameController {
         }
     }
     
+    pub fn show_game_details(&self) {
+        println!("Player limit : {}",self.player_limit);
+    }
+
     pub fn wait_for_players(&mut self) {
         let listener = net::TcpListener::bind("localhost:8080").unwrap(); //Create Listener
         let mut count = 0;
@@ -65,9 +69,11 @@ impl GameController {
         let clone_map = self.map.clone();
         self.timer.subscribe(Box::new(move || {
             let msg = &clone_map.lock().unwrap().coordinate_to_json_pacman().into_bytes();
+            //println!("{}",&clone_map.lock().unwrap().coordinate_to_json_pacman());
             for client in &mut *clone_client.lock().unwrap().deref_mut() {
-                //client.write(msg);
+                client.write(msg);
             }
+            clone_map.lock().unwrap().debug_next();
         }),200);
         self.timer.start(); //Start doing tasks
 
