@@ -1,12 +1,14 @@
+#![allow(unused)]
+
 mod server;
 mod game;
 mod network;
 mod time;
+mod algorithm;
 
 use std::thread;
 use std::time::{Duration,SystemTime};
 use std::env;
-
 
 
 fn main() { //For one game
@@ -19,11 +21,16 @@ fn main() { //For one game
 
     println!("Use default map. {}",map_path);
 
-    let map = game::Map::create_by_filename(map_path);
+    let mut map = game::Map::create_by_filename(map_path);
+    map.initialize();
+
     
     //map.show_map();
     //println!("{}",game_instance.map_to_String());
 
+
+    //println!("{}",map.count_on(1,1));
+    //algorithm::inter_point_test();
     open_server(map);
 }
 

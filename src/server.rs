@@ -67,14 +67,17 @@ impl GameController {
 
         let clone_client = self.clients.clone();
         let clone_map = self.map.clone();
-        self.timer.subscribe(Box::new(move || {
+        self.timer.subscribe(Box::new(move || { //Per 0.2 seconds, Program executes this closure.
+            clone_map.lock().unwrap().move_pacman();
             let msg = &clone_map.lock().unwrap().coordinate_to_json_pacman().into_bytes();
-            //println!("{}",&clone_map.lock().unwrap().coordinate_to_json_pacman());
+                //Pacman coordinate convert to json here.
             for client in &mut *clone_client.lock().unwrap().deref_mut() {
-                client.write(msg);
+                client.write(msg); //And send to clients. (Can't use announce methot)
             }
-            clone_map.lock().unwrap().debug_next();
-        }),200);
+            //clone_map.lock().unwrap().debug_next();
+        }),
+        500 //Time span
+        );
         self.timer.start(); //Start doing tasks
 
         self.distribute_map();
@@ -88,7 +91,6 @@ impl GameController {
         //let mut count = 0;
 
         loop { //main game loop 
-            //self.map.pacman.x += 1.; //for test
             for i in 0..self.clients.lock().unwrap().deref().len() {
                 let cloned = buffer_streams.clone();
                 let (sender,receiver) = mpsc::channel(); //Sender<String>,Receiver<String>
@@ -97,11 +99,8 @@ impl GameController {
 
                 match receiver.recv_timeout(Duration::from_millis(1000)) {
                     Ok(s) => {
-                        //print!("\x1b[1;{}Hclient[{}]={}",i * 40 + 10,i,s);
                         let ret = network::parse_client_info(s);
-                        self.map.lock().unwrap().players[i].x = ret[0];
-                        self.map.lock().unwrap().players[i].y = ret[1];
-                        self.map.lock().unwrap().players[i].z = ret[2];
+                        self.map.lock().unwrap().update_coordinate(i,ret);
                     }
                     Err(_) => { 
                         continue; //Could not receive data

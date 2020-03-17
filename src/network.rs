@@ -11,7 +11,7 @@ use std::thread;
 use std::ops::{Deref,DerefMut};
 
 use super::server::{GameController,BufStream};
-use super::game::{Player};
+use super::game::{Player,PlayerOnMap};
 
 impl GameController {
     pub fn announce_message(&mut self,msg : String) {
@@ -46,6 +46,7 @@ impl GameController {
     pub fn player_join(&mut self,mut stream : net::TcpStream) {
         self.clients.lock().unwrap().push(stream);
         self.map.lock().unwrap().players.push(Player::new(0.0,0.0,0.0));
+        self.map.lock().unwrap().players_on_map.push(PlayerOnMap::new(0,0,0));
     }
     
     /*
