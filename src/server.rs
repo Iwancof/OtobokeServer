@@ -76,7 +76,7 @@ impl GameController {
             }
             //clone_map.lock().unwrap().debug_next();
         }),
-        500 //Time span
+        200 //Time span
         );
         self.timer.start(); //Start doing tasks
 

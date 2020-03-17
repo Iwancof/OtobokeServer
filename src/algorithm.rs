@@ -211,3 +211,4 @@ pub fn convert_system_test() {
     
     assert!(converted == PlayerOnMap::new2(3,1));
 }
+

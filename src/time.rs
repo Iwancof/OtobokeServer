@@ -3,6 +3,7 @@
 use std::time::{Duration,SystemTime,Instant};
 use std::thread;
 use std::sync::{Arc,Mutex};
+use std::ops::{Deref,DerefMut};
 
 pub struct LoopTimerUnArc {
     latest : Instant,
@@ -71,9 +72,20 @@ impl LoopTimer {
             loop { 
                 clone.lock().unwrap().update();
                 clone.lock();
-                thread::sleep(Duration::from_millis(100));
+                thread::sleep(Duration::from_millis(50));
             }
         });
     }
+}
+
+#[test]
+pub fn subscribe_test() {
+    let mut timer = LoopTimer::new();
+    let return_value = Arc::new(Mutex::new(0));
+    let cloned = return_value.clone();
+    timer.subscribe(Box::new(move || { *cloned.lock().unwrap().deref_mut() = 123; }) ,10 );
+    timer.start();
+    thread::sleep(Duration::from_millis(100));
+    assert_eq!(*return_value.lock().unwrap().deref(),123);
 }
 
