@@ -3,6 +3,7 @@
 use std::fs;
 use std::fmt;
 use super::game::{Map,PlayerOnMap,Player};
+use std::ops::Sub;
 
 impl Map {
     pub fn update_target(&mut self) -> usize{ //Change this methot if you want to change targets
@@ -109,6 +110,22 @@ impl PlayerOnMap {
             (self.x as f32 - t.x as f32).powf(2.) + 
             (self.y as f32 - t.y as f32).powf(2.)
         ).sqrt()
+    }
+    pub fn to_set(&self) -> Set {
+        Set {
+            x : self.x,
+            y : self.y
+        }
+    }
+}
+
+impl Sub for PlayerOnMap {
+    type Output = PlayerOnMap;
+    fn sub(self,other : PlayerOnMap) -> PlayerOnMap {
+        PlayerOnMap::new2(
+            self.x - other.x,
+            self.y - other.y
+        )
     }
 }
 

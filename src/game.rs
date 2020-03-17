@@ -194,8 +194,42 @@ impl Map {
                     can_moves.push(PlayerOnMap::new2(x,y));
                 }
             }
-            self.pacman = can_moves[0].clone();
-            println!("Infer result {}",can_moves[0]);
+            //Target direction
+            let mut dir_tmp = vec![];
+            let target = &self.players_on_map[self.target_index];
+            if tmp.x <= target.x {
+                dir_tmp.push(Set::new(1,0));
+            } else {
+                dir_tmp.push(Set::new(-1,0));
+            }
+            if tmp.y <= target.y {
+                dir_tmp.push(Set::new(0,1));
+            } else {
+                dir_tmp.push(Set::new(0,-1));
+            }
+            if target.x < tmp.x {
+                dir_tmp.push(Set::new(1,0));
+            } else {
+                dir_tmp.push(Set::new(-1,0));
+            }
+            if target.y < tmp.y {
+                dir_tmp.push(Set::new(0,1));
+            } else {
+                dir_tmp.push(Set::new(0,-1));
+            }
+            
+            let infered_next = match can_moves.iter().map(|x| 
+                          (x.clone(),match dir_tmp.iter().position(|y| (x.clone() - tmp.clone()).to_set() == *y) {
+                                        Some(i) => i,
+                                        None => 10,
+                                    }
+                          )
+                ).min_by_key(|x| x.1) {
+                    Some(i) => i.0,
+                    None => PlayerOnMap::new2(0,0),
+                };
+            self.pacman = infered_next.clone();
+            println!("Infer result {}",infered_next);
         } else {
             let (mut new_x,mut new_y) = (0,0);
             for dx in vec![-1,1] {
@@ -263,6 +297,7 @@ pub struct PlayerOnMap {
     pub y : i32,
     pub z : i32,
 }
+
 
 #[test]
 pub fn map_parse_test() {
