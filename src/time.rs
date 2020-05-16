@@ -88,4 +88,3 @@ pub fn subscribe_test() {
     thread::sleep(Duration::from_millis(100));
     assert_eq!(*return_value.lock().unwrap().deref(),123);
 }
-

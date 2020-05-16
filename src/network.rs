@@ -66,6 +66,8 @@ pub fn enable_sender(clone_stream : Arc<Mutex<Vec<BufStream>>>,sender : mpsc::Se
         let mut ret = String::new();
 
         locked[i].rd.read_line(&mut ret).unwrap();
+
+        //println!("In thread cs test data = {}", ret);
         sender.send(ret);
     });
 }
@@ -86,4 +88,5 @@ pub fn send_message(mut stream : &net::TcpStream,msg : String) -> Result<usize, 
 pub fn send_message_byte(mut stream : &net::TcpStream,msg : &[u8]) -> Result<usize, Error> {
     stream.write(msg)
 }
+
 

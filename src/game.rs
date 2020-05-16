@@ -3,6 +3,9 @@
 use std::fs;
 use std::fmt;
 use super::algorithm::{Set};
+use std::sync::{Arc,Mutex};
+use std::time::{Duration,SystemTime,Instant};
+use std::thread;
 
 const SIZE : f32 = 1.05;
 const TARGETS : [Set;5] = [
@@ -25,8 +28,9 @@ pub struct Map {
     pub target_index : usize,
     pub infer_points : Vec<PlayerOnMap>,
     pub prev_place : PlayerOnMap,
-    pub invers : bool,
+    pub invers : Arc<Mutex<bool>>,
     pub pacman_score : i32,
+    pub paced_collection : Arc<Mutex<Vec<PlayerOnMap>>>,
 }
 
 impl Map {
@@ -42,8 +46,9 @@ impl Map {
             target_index:4,
             infer_points : vec![],
             prev_place : PlayerOnMap::new(0,0,0),
-            invers : false,
+            invers : Arc::new(Mutex::new(false)),
             pacman_score : 0,
+            paced_collection : Arc::new(Mutex::new(vec![])),
         }
     }
 
@@ -75,8 +80,9 @@ impl Map {
             target_index:4,
             infer_points : vec![],
             prev_place : PlayerOnMap::new(9,14,0),
-            invers : false,
+            invers : Arc::new(Mutex::new(false)),
             pacman_score : 0,
+            paced_collection : Arc::new(Mutex::new(vec![])),
         }
     }
    
@@ -221,7 +227,7 @@ impl Map {
         let mut flag = false;
         for dx in vec![-1,1] {
             let (x,y) : (i32,i32) = (
-                (self.pacman.x as i32 + dx) % self.width as i32,
+                (self.pacman.x as i32 + dx + self.width as i32) % self.width as i32,
                 self.pacman.y as i32
                 );
             if self.can_move(x,y) {
@@ -234,7 +240,7 @@ impl Map {
         for dy in vec![-1,1] {
             let (x,y) : (i32,i32) = (
                 self.pacman.x as i32,
-                (self.pacman.y as i32 + dy) % self.height as i32
+                (self.pacman.y as i32 + dy + self.height as i32) % self.height as i32
                 );
             if self.can_move(x,y) {
                 if flag { panic!(r#""routed_next_point" must not be called in non-infer point"#); }
@@ -261,10 +267,12 @@ impl Map {
         self.update_target(); 
 
         let is_infer = self.infer_points.iter().any(|x| *x == self.pacman);
+        //infer_points is across road
+
         if is_infer {
             let next_point = self.infer_next_point();
             self.pacman = next_point.clone();
-            println!("Infer result {}",next_point);
+            //println!("Infer result {}",next_point);
         } else {
             self.pacman = self.routed_next_point();
         }
@@ -278,10 +286,16 @@ impl Map {
         if *point_ref == 5 { //Bait
             *point_ref = 0;
             self.pacman_score += 1;
-            println!("PAC!");
+            //println!("PAC!");
+            println!("{}",self.pacman.clone());
+            self.paced_collection.lock().unwrap().push(self.pacman.clone());
         } else if *point_ref == 6 { //Power bait
-
-            
+            let inversflag_clone = self.invers.clone();
+            thread::spawn(move || {
+                *inversflag_clone.lock().unwrap() = true;
+                thread::sleep(Duration::from_millis(5 * 1000));
+                *inversflag_clone.lock().unwrap() = false;
+            });
        }
     }
 
@@ -337,6 +351,31 @@ pub fn test_map_creater() -> Map {
     Map::create_by_map_string(TEST_MAP_DATA.to_string())
 }
 */
+
+pub fn paced_vec_to_string(v : Vec<PlayerOnMap>) -> String {
+    if v.len() == 0 { return "".to_string(); }
+    let mut ret = r#"PACCOL;{"Coordinate":["#.to_string();
+    for i in 0..v.len() - 1 {
+        ret += r#"{"x":""#;
+        ret += &format!("{}",v[i].x);
+        ret += r#"","y":""#;
+        ret += &format!("{}",v[i].y);
+        ret += r#"","z":""#;
+        ret += &format!("{}",v[i].z);
+        ret += r#""},"#;
+    }
+    ret += r#"{"x":""#;
+    ret += &format!("{}",v[v.len() - 1].x);
+    ret += r#"","y":""#;
+    ret += &format!("{}",v[v.len() - 1].y);
+    ret += r#"","z":""#;
+    ret += &format!("{}",v[v.len() - 1].z);
+    ret += r#""}]}|"#;
+
+    //println!("{}",ret);
+    ret
+}
+
 
 const TEST_MAP_PATH : &'static str = "C:\\Users\\Rock0x3FA\\OtobokeServer\\maps\\test";
 
