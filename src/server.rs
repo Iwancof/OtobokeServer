@@ -39,9 +39,8 @@ impl GameController {
     }
 
     pub fn wait_for_players(&mut self) {
-        let listener = net::TcpListener::bind("localhost:12345").unwrap(); //Create Listener
-        //let listener = net::TcpListener::bind("2400:4051:99c2:5800:5424:a66c:581:2d8e:5522").unwrap(); //Create Listener
-        //let listener = net::TcpListener::bind("2400:4051:99c2:5800:2cad:351d:e2d8:fc07:5522").unwrap(); //Create Listener
+        //let listener = net::TcpListener::bind("2400:4051:99c2:5800:9978:6c9:2c0c:8520:5522").unwrap(); //Create Listener
+        let listener = net::TcpListener::bind("localhost:5522").unwrap(); //Create Listener
         let mut count = 0;
 
         for stream in listener.incoming() { //Wait for players
@@ -117,14 +116,14 @@ impl GameController {
 
                 network::enable_sender(cloned,sender,i); //Listening stream in new thread
 
-                match receiver.recv_timeout(Duration::from_millis(300)) {
+                match receiver.recv_timeout(Duration::from_millis(200)) {
                     Ok(s) => {
-                        println!("client[{}] = {}",i,&s);
+                        //println!("client[{}] = {}",i,&s);
                         let ret = network::parse_client_info(s);
                         self.map.lock().unwrap().update_coordinate(i,ret);
                     }
                     Err(_) => { 
-                        println!("Error occured");
+                        //println!("Error occured");
                         continue; //Could not receive data
                     }
                 }

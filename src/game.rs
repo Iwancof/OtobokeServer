@@ -287,7 +287,8 @@ impl Map {
             *point_ref = 0;
             self.pacman_score += 1;
             //println!("PAC!");
-            println!("{}",self.pacman.clone());
+            //println!("{}",self.pacman.clone());
+            //let cl = 
             self.paced_collection.lock().unwrap().push(self.pacman.clone());
         } else if *point_ref == 6 { //Power bait
             let inversflag_clone = self.invers.clone();
@@ -296,6 +297,7 @@ impl Map {
                 thread::sleep(Duration::from_millis(5 * 1000));
                 *inversflag_clone.lock().unwrap() = false;
             });
+            self.paced_collection.lock().unwrap().push(self.pacman.clone());
        }
     }
 
