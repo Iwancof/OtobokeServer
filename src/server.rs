@@ -91,8 +91,6 @@ impl GameController {
             *clone_map2.lock().unwrap().paced_collection.lock().unwrap() = vec![];
         }),200);
 
-        self.timer.start(); //Start doing tasks
-
         self.distribute_map();
 
         let buffer_streams : Arc<Mutex<Vec<BufStream>>>
@@ -101,16 +99,41 @@ impl GameController {
             |c| BufStream::new(c,100)
         ).collect()
             ));
-        //let mut count = 0;
-    
-        /*
-        let mut ret = String::new();
-        buffer_streams.lock().unwrap()[0].rd.read_line(&mut ret).unwrap();
-        println!("cs send test data = {}", ret);
-        */
+       
+        let client_count = self.clients.lock().unwrap().deref().len();
+
+        // wait client effect
+        let mut receivers = vec![];
+        for i in 0..client_count {
+            let cloned = buffer_streams.clone();
+            let (sender, receiver) = mpsc::channel();
+            receivers.push(receiver);
+            thread::spawn(move || {
+                let mut ret = String::new();
+                let reader = &mut (cloned.lock().unwrap()[i].rd);
+                reader.read_line(&mut ret);
+                sender.send(ret);
+            });
+        }
+
+        for r in receivers {
+            match(r.recv()) {
+                Ok(msg) => {
+                    if msg != "END_EFFECT\n" {
+                        panic!("Invalid message in wait client effect. data is {}", msg);
+                    }
+                },
+                Err(_) => {
+                    panic!("Receiver got error in waiting client effect.");
+                }
+            }
+        }
+
+
+        self.timer.start(); //Start doing tasks
 
         loop { //main game loop 
-            for i in 0..self.clients.lock().unwrap().deref().len() {
+            for i in 0..client_count {
                 let cloned = buffer_streams.clone();
                 let (sender,receiver) = mpsc::channel(); //Sender<String>,Receiver<String>
 
