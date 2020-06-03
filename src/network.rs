@@ -3,7 +3,7 @@
 extern crate regex;
 
 use std::net::{self,TcpStream};
-use std::io::{Write,BufReader,BufWriter,BufRead,Error};
+use std::io::{Write,BufReader,BufWriter,BufRead,Error, Read};
 use regex::Regex;
 
 use std::sync::{mpsc,Arc,Mutex};
@@ -16,22 +16,32 @@ use super::game::{Player,PlayerOnMap};
 impl GameController {
     pub fn announce_message(&mut self,msg : String) {
         let message_byte = &msg.into_bytes();
-        for client in &mut *self.clients.lock().unwrap().deref_mut() { 
-            client.write(
-                message_byte
-             );
+        for client_arc in &self.clients { 
+            match client_arc.lock() {
+                Ok(mut client) => {
+                    client.write(message_byte);
+                },
+                Err(_) => {
+                    println!("Could not send data");
+                }
+            }
         }
     }
     pub fn announce_message_byte(&mut self,msg : &[u8]) {
-        for client in &mut *self.clients.lock().unwrap().deref_mut() { 
-            client.write(
-                msg
-             );
+        for client_arc in &self.clients { 
+            match client_arc.lock() {
+                Ok(mut client) => {
+                    client.write(msg);
+                },
+                Err(_) => {
+                    println!("Could not send data");
+                }
+            }
         }
     }
 
     pub fn player_join_initialize(&mut self,mut stream : net::TcpStream) {
-        let json = "{".to_string() + &format!(r#""counter":{}"#,(*self.clients.lock().unwrap().deref()).len()) + "}|";
+        let json = "{".to_string() + &format!(r#""counter":{}"#,(self.clients.len())) + "}|";
         match send_message(&stream,json) {
             Ok(_) => {
                 println!("player joined! player details : {:?}",stream);
@@ -44,32 +54,12 @@ impl GameController {
     }
 
     pub fn player_join(&mut self,mut stream : net::TcpStream) {
-        self.clients.lock().unwrap().push(stream);
+        //self.clients.lock().unwrap().push(stream);
+        self.clients.push(Arc::new(Mutex::new(stream)));
         self.map.lock().unwrap().players.push(Player::new(0.0,0.0,0.0));
         self.map.lock().unwrap().players_on_map.push(PlayerOnMap::new(0,0,0));
     }
     
-    /*
-    pub fn deref(&mut self) -> Result<&Vec<TcpStream>,String> {
-        match self.clients.lock() {
-            Ok(x) => Ok(x.deref()),
-            Err(_) => Err("Could not lock clients".to_string()),
-        }
-    }
-    */
-}
-
-pub fn enable_sender(clone_stream : Arc<Mutex<Vec<BufStream>>>,sender : mpsc::Sender<String>,i : usize) {
-    thread::spawn(move || {
-        let mut locked = clone_stream.lock().unwrap(); //TODO: use match
-
-        let mut ret = String::new();
-
-        locked[i].rd.read_line(&mut ret).unwrap();
-
-        //println!("In thread cs test data = {}", ret);
-        sender.send(ret);
-    });
 }
 
 pub fn parse_client_info(msg : String) -> Vec<f32> {
@@ -89,4 +79,32 @@ pub fn send_message_byte(mut stream : &net::TcpStream,msg : &[u8]) -> Result<usi
     stream.write(msg)
 }
 
+pub fn read_by_buffer(br : Arc<Mutex<BufStream>>) -> String {
+    let mut ret = String::new();
+    let reader = &mut br.lock().expect("Could not lock buffer stream").rd;
+    reader.read_line(&mut ret);
+    ret
+}
 
+pub fn start_reading_coordinate(stream: &Vec<Arc<Mutex<BufStream>>>, data_buffer_non_static: &mut Vec<Arc<Mutex<String>>>) {
+    // if data received, a mutex variable self.network_buffer change.
+    for (i, stream_arc_non_static) in stream.iter().enumerate() {
+        let stream_arc = stream_arc_non_static.clone(); // create 'static pointer
+        let mut data_buffer = data_buffer_non_static.clone();
+        thread::spawn(move || {
+            loop {
+                match(stream_arc.lock()) {
+                    Ok(mut stream) => {
+                        let mut read_data = String::new();
+                        stream.rd.read_line(&mut read_data);
+                        println!("got data from client {}", i);
+                        *(data_buffer[i].lock().unwrap()) = read_data.clone();
+                    },
+                    Err(_) => {
+                        println!("[warn] Could not lock client in start_reading_coordinate");
+                    }
+                }
+            }
+        });
+    }
+}

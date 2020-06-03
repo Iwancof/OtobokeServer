@@ -291,6 +291,7 @@ impl Map {
             //let cl = 
             self.paced_collection.lock().unwrap().push(self.pacman.clone());
         } else if *point_ref == 6 { //Power bait
+            *point_ref = 0;
             let inversflag_clone = self.invers.clone();
             thread::spawn(move || {
                 *inversflag_clone.lock().unwrap() = true;
