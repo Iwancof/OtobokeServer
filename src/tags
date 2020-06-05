@@ -1,0 +1,155 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_OUTPUT_FILESEP	slash	/slash or backslash/
+!_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
+!_TAG_PATTERN_LENGTH_LIMIT	96	/0 for no limit/
+!_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
+!_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
+!_TAG_PROGRAM_URL	https://ctags.io/	/official site/
+!_TAG_PROGRAM_VERSION	0.0.0	/f6c7064a/
+BufStream	server.rs	/^impl BufStream {$/;"	c
+BufStream	server.rs	/^pub struct BufStream {$/;"	s
+CommunicationProvider	network.rs	/^impl CommunicationProvider {$/;"	c
+CommunicationProvider	network.rs	/^struct CommunicationProvider {$/;"	s
+GameController	network.rs	/^impl GameController {$/;"	c
+GameController	server.rs	/^impl GameController {$/;"	c
+GameController	server.rs	/^pub struct GameController {$/;"	s
+LoopTimer	time.rs	/^impl LoopTimer {$/;"	c
+LoopTimer	time.rs	/^pub struct LoopTimer {$/;"	s
+LoopTimerUnArc	time.rs	/^impl LoopTimerUnArc {$/;"	c
+LoopTimerUnArc	time.rs	/^pub struct LoopTimerUnArc {$/;"	s
+Map	algorithm.rs	/^impl Map {$/;"	c
+Map	game.rs	/^impl Map {$/;"	c
+Map	game.rs	/^pub struct Map {$/;"	s
+Output	algorithm.rs	/^    type Output = PlayerOnMap;$/;"	t	implementation:PlayerOnMap
+Player	game.rs	/^impl Player {$/;"	c
+Player	game.rs	/^pub struct Player {$/;"	s
+PlayerOnMap	algorithm.rs	/^impl Clone for PlayerOnMap {$/;"	c
+PlayerOnMap	algorithm.rs	/^impl PartialEq for PlayerOnMap {$/;"	c
+PlayerOnMap	algorithm.rs	/^impl PlayerOnMap {$/;"	c
+PlayerOnMap	algorithm.rs	/^impl Sub for PlayerOnMap {$/;"	c
+PlayerOnMap	algorithm.rs	/^impl fmt::Display for PlayerOnMap {$/;"	c
+PlayerOnMap	game.rs	/^pub struct PlayerOnMap {$/;"	s
+Set	algorithm.rs	/^impl PartialEq for Set {$/;"	c
+Set	algorithm.rs	/^impl Set {$/;"	c
+Set	algorithm.rs	/^impl fmt::Display for Set {$/;"	c
+Set	algorithm.rs	/^pub struct Set {$/;"	s
+algorithm	main.rs	/^mod algorithm;$/;"	n
+announce_message	network.rs	/^    pub fn announce_message(&self, msg: String) {$/;"	P	implementation:CommunicationProvider
+announce_message	network.rs	/^    pub fn announce_message(&self, msg: String) {$/;"	P	implementation:GameController
+announce_message_byte	network.rs	/^    pub fn announce_message_byte(&self, msg: &[u8]) {$/;"	P	implementation:CommunicationProvider
+announce_message_byte	network.rs	/^    pub fn announce_message_byte(&self, msg: &[u8]) {$/;"	P	implementation:GameController
+can_move	algorithm.rs	/^    pub fn can_move(&self,x : i32,y : i32) -> bool {$/;"	P	implementation:Map
+clients	network.rs	/^    pub clients: Vec<Arc<Mutex<TcpStream>>>, $/;"	m	struct:CommunicationProvider
+clone	algorithm.rs	/^    fn clone(&self) -> PlayerOnMap {$/;"	P	implementation:PlayerOnMap
+comn_prov	server.rs	/^    pub comn_prov: Arc<Mutex<CommunicationProvider>>,$/;"	m	struct:GameController
+convert_system	algorithm.rs	/^    pub fn convert_system(&self,arg : Vec<PlayerOnMap>) -> Vec<PlayerOnMap> {$/;"	P	implementation:Map
+convert_system	algorithm.rs	/^    pub fn convert_system(&self,height : i32) -> PlayerOnMap {$/;"	P	implementation:PlayerOnMap
+convert_system_test	algorithm.rs	/^pub fn convert_system_test() {$/;"	f
+coordinate_to_json	algorithm.rs	/^    pub fn coordinate_to_json(&self) -> String {$/;"	P	implementation:PlayerOnMap
+coordinate_to_json	game.rs	/^    pub fn coordinate_to_json(&self) -> String {$/;"	P	implementation:Map
+coordinate_to_json	game.rs	/^    pub fn coordinate_to_json(&self) -> String {$/;"	P	implementation:Player
+coordinate_to_json_pacman	game.rs	/^    pub fn coordinate_to_json_pacman(&self) -> String {$/;"	P	implementation:Map
+count	game.rs	/^    pub count : usize,$/;"	m	struct:Map
+count	time.rs	/^    count : usize,$/;"	m	struct:LoopTimerUnArc
+count_on	algorithm.rs	/^    pub fn count_on(&self,x : i32 ,y : i32) -> i32 {$/;"	P	implementation:Map
+count_test	algorithm.rs	/^pub fn count_test() {$/;"	f
+create_by_filename	game.rs	/^    pub fn create_by_filename(file_name : String) -> Map {$/;"	P	implementation:Map
+create_by_map_string	game.rs	/^    pub fn create_by_map_string(map_data : String) -> Map {$/;"	P	implementation:Map
+dist	algorithm.rs	/^    pub fn dist(&self,t : &PlayerOnMap) -> f32 {$/;"	P	implementation:PlayerOnMap
+distribute_map	server.rs	/^    pub fn distribute_map(&mut self) {$/;"	P	implementation:GameController
+eq	algorithm.rs	/^    fn eq(&self, other : &Self) -> bool {$/;"	P	implementation:PlayerOnMap
+eq	algorithm.rs	/^    fn eq(&self, other : &Self) -> bool {$/;"	P	implementation:Set
+field	game.rs	/^    pub field : Vec<Vec<i32>>,$/;"	m	struct:Map
+field_access	game.rs	/^    pub fn field_access(&self, x : usize,y : usize) -> i32 {$/;"	P	implementation:Map
+field_access_at	game.rs	/^    pub fn field_access_at(&self,at : &PlayerOnMap) -> i32 {$/;"	P	implementation:Map
+field_access_mut	game.rs	/^    pub fn field_access_mut(&mut self,x : usize,y : usize) -> &mut i32 {$/;"	P	implementation:Map
+field_access_mut_at	game.rs	/^    pub fn field_access_mut_at(&mut self,at : &PlayerOnMap) -> &mut i32 {$/;"	P	implementation:Map
+find_infer_point	algorithm.rs	/^    pub fn find_infer_point(&mut self) -> Vec<PlayerOnMap> {$/;"	P	implementation:Map
+fmt	algorithm.rs	/^    fn fmt(&self,f : &mut fmt::Formatter) -> fmt::Result {$/;"	P	implementation:PlayerOnMap
+fmt	algorithm.rs	/^    fn fmt(&self,f : &mut fmt::Formatter) -> fmt::Result {$/;"	P	implementation:Set
+game	main.rs	/^mod game;$/;"	n
+height	game.rs	/^    pub height :usize,$/;"	m	struct:Map
+infer_next_point	game.rs	/^    pub fn infer_next_point(&self) -> PlayerOnMap {$/;"	P	implementation:Map
+infer_point_test	algorithm.rs	/^pub fn infer_point_test() {$/;"	f
+infer_points	game.rs	/^    pub infer_points : Vec<PlayerOnMap>,$/;"	m	struct:Map
+initialize	game.rs	/^    pub fn initialize(&mut self) {$/;"	P	implementation:Map
+invers	game.rs	/^    pub invers : Arc<Mutex<bool>>,$/;"	m	struct:Map
+item	time.rs	/^    item : Arc<Mutex<LoopTimerUnArc>>,$/;"	m	struct:LoopTimer
+latest	time.rs	/^    latest : Instant,$/;"	m	struct:LoopTimerUnArc
+limits	time.rs	/^    limits : Vec<u128>,$/;"	m	struct:LoopTimerUnArc
+main	main.rs	/^fn main() { \/\/For one game$/;"	f
+map	server.rs	/^    pub map : Arc<Mutex<Map>>,$/;"	m	struct:GameController
+map_access_test	game.rs	/^pub fn map_access_test() {$/;"	f
+map_access_test2	game.rs	/^pub fn map_access_test2() {$/;"	f
+map_parse_test	game.rs	/^pub fn map_parse_test() {$/;"	f
+map_to_string	game.rs	/^    pub fn map_to_string(&self) -> String { \/\/String is Json$/;"	P	implementation:Map
+move_finalize	game.rs	/^    pub fn move_finalize(&mut self) {$/;"	P	implementation:Map
+move_pacman	game.rs	/^    pub fn move_pacman(&mut self) {$/;"	P	implementation:Map
+network	main.rs	/^mod network;$/;"	n
+network_buffer	network.rs	/^    pub network_buffer : Vec<Arc<Mutex<String>>>,$/;"	m	struct:CommunicationProvider
+new	algorithm.rs	/^    pub fn new(x : i32,y : i32,z : i32) -> PlayerOnMap {$/;"	P	implementation:PlayerOnMap
+new	algorithm.rs	/^    pub fn new(x:i32,y:i32) -> Set {$/;"	P	implementation:Set
+new	game.rs	/^    pub fn new(w : usize ,h : usize) -> Map {$/;"	P	implementation:Map
+new	game.rs	/^    pub fn new(x : f32,y : f32,z : f32) -> Player{$/;"	P	implementation:Player
+new	server.rs	/^    pub fn new(map : Map) -> GameController {$/;"	P	implementation:GameController
+new	server.rs	/^    pub fn new(stream : &TcpStream) -> BufStream {$/;"	P	implementation:BufStream
+new	time.rs	/^    pub fn new() -> LoopTimer {$/;"	P	implementation:LoopTimer
+new	time.rs	/^    pub fn new() -> LoopTimerUnArc {$/;"	P	implementation:LoopTimerUnArc
+new2	algorithm.rs	/^    pub fn new2(x : i32,y : i32) -> PlayerOnMap {$/;"	P	implementation:PlayerOnMap
+on_map_coordinate	game.rs	/^    pub fn on_map_coordinate(&self) -> PlayerOnMap { \/\/To integer$/;"	P	implementation:Player
+open_server	main.rs	/^fn open_server(map : game::Map) {$/;"	f
+paced_collection	game.rs	/^    pub paced_collection : Arc<Mutex<Vec<PlayerOnMap>>>,$/;"	m	struct:Map
+paced_vec_to_string	game.rs	/^pub fn paced_vec_to_string(v : Vec<PlayerOnMap>) -> String {$/;"	f
+pacman	game.rs	/^    pub pacman : PlayerOnMap,$/;"	m	struct:Map
+pacman_score	game.rs	/^    pub pacman_score : i32,$/;"	m	struct:Map
+parse_client_info	network.rs	/^pub fn parse_client_info(msg : String) -> Vec<f32> {$/;"	f
+player_join	network.rs	/^    pub fn player_join(&mut self,mut stream : net::TcpStream) {$/;"	P	implementation:GameController
+player_join_initialize	network.rs	/^    pub fn player_join_initialize(&mut self,mut stream : net::TcpStream) {$/;"	P	implementation:GameController
+player_limit	server.rs	/^    pub player_limit : usize,$/;"	m	struct:GameController
+players	game.rs	/^    pub players : Vec<Player>,$/;"	m	struct:Map
+players_on_map	game.rs	/^    pub players_on_map : Vec<PlayerOnMap>,$/;"	m	struct:Map
+prev_place	game.rs	/^    pub prev_place : PlayerOnMap,$/;"	m	struct:Map
+print_map	game.rs	/^    pub fn print_map(&self,wos : usize,hos : usize) {$/;"	P	implementation:Map
+print_on	main.rs	/^fn print_on(msg : String,wos : usize,hos : usize) {$/;"	f
+print_onmap_coordinate	game.rs	/^    pub fn print_onmap_coordinate(&self) {$/;"	P	implementation:Map
+print_typename	server.rs	/^pub fn print_typename<T>(_ : T) {$/;"	f
+rd	server.rs	/^    pub rd : BufReader<TcpStream>,$/;"	m	struct:BufStream
+read_by_buffer	network.rs	/^pub fn read_by_buffer(br : Arc<Mutex<BufStream>>) -> String {$/;"	f
+routed_next_point	game.rs	/^    pub fn routed_next_point(&self) -> PlayerOnMap {$/;"	P	implementation:Map
+search_can_move_point	game.rs	/^    pub fn search_can_move_point(&self) -> Vec<PlayerOnMap> {$/;"	P	implementation:Map
+send_message	network.rs	/^pub fn send_message(mut stream : &net::TcpStream,msg : String) -> Result<usize, Error> {$/;"	f
+send_message_byte	network.rs	/^pub fn send_message_byte(mut stream : &net::TcpStream,msg : &[u8]) -> Result<usize, Error> {$/;"	f
+server	main.rs	/^mod server;$/;"	n
+set_priority	game.rs	/^    pub fn set_priority(&self) -> Vec<Set> {$/;"	P	implementation:Map
+show_game_details	server.rs	/^    pub fn show_game_details(&self) {$/;"	P	implementation:GameController
+show_map	game.rs	/^    pub fn show_map(&self) {$/;"	P	implementation:Map
+start	time.rs	/^    pub fn start(&mut self) {$/;"	P	implementation:LoopTimer
+start_game	server.rs	/^    pub fn start_game(&mut self) {$/;"	P	implementation:GameController
+start_reading_coordinate	network.rs	/^pub fn start_reading_coordinate(stream: &Vec<Arc<Mutex<BufStream>>>, data_buffer_non_static: &mu/;"	f
+str	game.rs	/^const TEST_MAP_PATH : &'static str = "C:\\\\Users\\\\Rock0x3FA\\\\OtobokeServer\\\\maps\\\\test"/;"	v
+sub	algorithm.rs	/^    fn sub(self,other : PlayerOnMap) -> PlayerOnMap {$/;"	P	implementation:PlayerOnMap
+subscribe	time.rs	/^    pub fn subscribe(&mut self,func : Box<dyn Fn() -> () + Send>,limit : u128) -> usize {$/;"	P	implementation:LoopTimer
+subscribe	time.rs	/^    pub fn subscribe(&mut self,func : Box<dyn Fn() -> () + Send>,limit : u128) -> usize {$/;"	P	implementation:LoopTimerUnArc
+subscribe_test	time.rs	/^pub fn subscribe_test() {$/;"	f
+target_index	game.rs	/^    pub target_index : usize,$/;"	m	struct:Map
+tasks	time.rs	/^    tasks : Vec<Box<dyn Fn() -> () + Send>>,$/;"	m	struct:LoopTimerUnArc
+time	main.rs	/^mod time;$/;"	n
+timer	server.rs	/^    pub timer : LoopTimer, \/\/This is doing tasks per the time$/;"	m	struct:GameController
+to_set	algorithm.rs	/^    pub fn to_set(&self) -> Set {$/;"	P	implementation:PlayerOnMap
+totals	time.rs	/^    totals : Vec<u128>,$/;"	m	struct:LoopTimerUnArc
+update	time.rs	/^    pub fn update(&mut self) {$/;"	P	implementation:LoopTimer
+update	time.rs	/^    pub fn update(&mut self) {$/;"	P	implementation:LoopTimerUnArc
+update_coordinate	game.rs	/^    pub fn update_coordinate(&mut self, i : usize, v: Vec<f32>) { \/\/Index,Coordiante(x,y,z)$/;"	P	implementation:Map
+update_target	algorithm.rs	/^    pub fn update_target(&mut self) -> usize{ \/\/Change this methot if you want to change targe/;"	P	implementation:Map
+wait_for_players	server.rs	/^    pub fn wait_for_players(&mut self) {$/;"	P	implementation:GameController
+width	game.rs	/^    pub width : usize,$/;"	m	struct:Map
+wr	server.rs	/^    pub wr : BufWriter<TcpStream>,$/;"	m	struct:BufStream
+x	algorithm.rs	/^    pub x : i32,$/;"	m	struct:Set
+x	game.rs	/^    pub x : f32,$/;"	m	struct:Player
+x	game.rs	/^    pub x : i32,$/;"	m	struct:PlayerOnMap
+y	algorithm.rs	/^    pub y : i32,$/;"	m	struct:Set
+y	game.rs	/^    pub y : f32,$/;"	m	struct:Player
+y	game.rs	/^    pub y : i32,$/;"	m	struct:PlayerOnMap
+z	game.rs	/^    pub z : f32,$/;"	m	struct:Player
+z	game.rs	/^    pub z : i32,$/;"	m	struct:PlayerOnMap

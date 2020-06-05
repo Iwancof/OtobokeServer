@@ -3,26 +3,30 @@
 extern crate regex;
 
 use std::net::{self,TcpStream};
-use std::io::{Write,BufReader,BufWriter,BufRead};
+use std::io::{self,Write,BufReader,BufWriter,BufRead};
 use std::sync::{mpsc,Arc,Mutex};
 use std::thread;
 use std::time::Duration;
+use std::process::exit;
 use regex::Regex;
 
 use std::ops::{Deref,DerefMut};
 
 use super::game::{Map,Player};
-use super::network;
+use super::network::{
+    CommunicationProvider,
+    start_reading_coordinate,
+    read_by_buffer,
+    parse_client_info,
+};
 use super::time::{LoopTimer};
 use super::game;
 
 pub struct GameController {
-    //pub clients : Arc<Mutex<Vec<TcpStream>>>,
-    pub clients : Vec<Arc<Mutex<TcpStream>>>,
+    pub comn_prov: Arc<Mutex<CommunicationProvider>>,
     pub player_limit : usize,
     pub map : Arc<Mutex<Map>>,
     pub timer : LoopTimer, //This is doing tasks per the time
-    pub network_buffer : Vec<Arc<Mutex<String>>>,
 }
 
 impl GameController {
@@ -30,11 +34,10 @@ impl GameController {
         let l = 1; //Players
         GameController{
             //clients : Arc::new(Mutex::new(Vec::new())),
-            clients : vec![],
-            player_limit : l,
-            map : Arc::new(Mutex::new(map)),
-            timer : LoopTimer::new(),
-            network_buffer : vec![Arc::new(Mutex::new("0, 0, 0".to_string())); l]
+            player_limit: l,
+            map: Arc::new(Mutex::new(map)),
+            timer: LoopTimer::new(),
+            comn_prov: Arc::new(Mutex::new(CommunicationProvider::new())),
         }
     }
     
@@ -62,17 +65,19 @@ impl GameController {
 
     pub fn distribute_map(&mut self) {
         let map_data = self.map.lock().unwrap().map_to_string();
-        self.announce_message(map_data);
-        self.announce_message(
+        self.announce_wrap(map_data);
+        self.announce_wrap(
             r#"{"value":""#.to_string() + &(self.player_limit.to_string()) + r#""}|"#);
         println!("map disributed");
     }
    
     pub fn start_game(&mut self) {
-        self.announce_message("StartGame|".to_string());
+        self.announce_wrap("StartGame|".to_string());
 
-        let clone_clients_for_announce_pac_coordinate = self.clients.clone();
-        let clone_clients_for_announce_bait_info = self.clients.clone();
+        let clone_clients_for_announce_pac_coordinate = 
+            self.comn_prov.lock().unwrap().clients.clone();
+        let clone_clients_for_announce_bait_info = 
+            self.comn_prov.lock().unwrap().clients.clone();
         let clone_map_for_announce_pac_coordinate = self.map.clone();
         let clone_map_for_announce_bait_info = self.map.clone();
         self.timer.subscribe(Box::new(move || { //Per 0.2 seconds, Program executes this closure.
@@ -111,7 +116,7 @@ impl GameController {
         self.distribute_map();
 
         let buffer_streams : Vec<Arc<Mutex<BufStream>>> // USAGE: access by index and mutex proc
-            = self.clients.iter().map(|c| // each clients
+            = self.comn_prov.lock().unwrap().clients.iter().map(|c| // each clients
                 match(c.lock()) {
                     Ok(client) => {
                         Arc::new(
@@ -136,7 +141,7 @@ impl GameController {
             let (sender, receiver) = mpsc::channel();
             receivers.push(receiver);
             thread::spawn(move || {
-                sender.send(network::read_by_buffer(cloned));
+                sender.send(read_by_buffer(cloned));
             });
         }
 
@@ -154,29 +159,43 @@ impl GameController {
         }
 
         println!("GameReady!!");
-        self.announce_message("GameReady|".to_string());
+        self.announce_wrap("GameReady|".to_string());
 
+        start_reading_coordinate(
+            &buffer_streams, 
+            &mut self.comn_prov.lock().unwrap().network_buffer.clone()
+        );
+
+        let cloned_network_buffer = self.comn_prov.lock().unwrap().network_buffer.clone();
+        let cloned_map = self.map.clone();
+        let cloned_prov = self.comn_prov.clone();
+
+        self.timer.subscribe(Box::new(move || {
+            for i in 0..client_count {
+                let player_lastest_message = cloned_network_buffer[i].lock().unwrap().clone();
+                // get lastest player info
+                println!("\x1b[10;0Hclient[{}] at {}",i,&player_lastest_message);
+
+                let parse_result = parse_client_info(player_lastest_message);
+                if parse_result.len() == 3 {
+                    cloned_map.lock().unwrap().update_coordinate(i, parse_result);
+                }
+            };
+            let received_data = cloned_map.lock().unwrap().coordinate_to_json();
+            cloned_prov.lock().unwrap().announce_message(received_data);
+        }), 100);
 
         self.timer.start(); //Start doing tasks
-
-        network::start_reading_coordinate(&buffer_streams, &mut self.network_buffer.clone());
-
-        let mut debug_count = 0;
+        
         loop { //main game loop 
-            for i in 0..client_count {
-                let player_lastest_message = self.network_buffer[i].lock().unwrap().clone();
-                // get lastest player info
-                debug_count += 1;
-                debug_count %= 100;
-                if debug_count == 0 {
-                    println!("\x1b[10;0Hclient[{}] at {}",i,&player_lastest_message);
-                    //println!("client[{}] at {}", i, player_lastest_message.clone);
-                }
-                let parse_result = network::parse_client_info(player_lastest_message);
-                self.map.lock().unwrap().update_coordinate(i, parse_result);
-            };
-            let received_data = self.map.lock().unwrap().coordinate_to_json();
-            self.announce_message(received_data); // announce clients coordinate to clients
+            /*
+            let mut server_stdin = String::new();
+            io::stdin().read_line(&mut server_stdin);
+
+            if server_stdin == "stop" {
+                exit(0);
+            }
+            */
         }
     }
 

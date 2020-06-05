@@ -13,8 +13,19 @@ use std::ops::{Deref,DerefMut};
 use super::server::{GameController,BufStream};
 use super::game::{Player,PlayerOnMap};
 
-impl GameController {
-    pub fn announce_message(&mut self,msg : String) {
+pub struct CommunicationProvider {
+    pub clients: Vec<Arc<Mutex<TcpStream>>>, 
+    pub network_buffer : Vec<Arc<Mutex<String>>>,
+}
+
+impl CommunicationProvider {
+    pub fn new() -> Self {
+        Self {
+            clients: vec![],
+            network_buffer: vec![],
+        }
+    }
+    pub fn announce_message(&self, msg: String) {
         let message_byte = &msg.into_bytes();
         for client_arc in &self.clients { 
             match client_arc.lock() {
@@ -27,7 +38,7 @@ impl GameController {
             }
         }
     }
-    pub fn announce_message_byte(&mut self,msg : &[u8]) {
+    pub fn announce_message_byte(&self, msg: &[u8]) {
         for client_arc in &self.clients { 
             match client_arc.lock() {
                 Ok(mut client) => {
@@ -39,9 +50,18 @@ impl GameController {
             }
         }
     }
+    pub fn clients_count(&self) -> usize {
+        self.clients.len()
+    }
+}
+
+impl GameController {
+    pub fn announce_wrap(&self, msg: String) {
+        self.comn_prov.lock().unwrap().announce_message(msg);
+    }
 
     pub fn player_join_initialize(&mut self,mut stream : net::TcpStream) {
-        let json = "{".to_string() + &format!(r#""counter":{}"#,(self.clients.len())) + "}|";
+        let json = "{".to_string() + &format!(r#""counter":{}"#,(self.comn_prov.lock().unwrap().clients.len())) + "}|";
         match send_message(&stream,json) {
             Ok(_) => {
                 println!("player joined! player details : {:?}",stream);
@@ -55,7 +75,10 @@ impl GameController {
 
     pub fn player_join(&mut self,mut stream : net::TcpStream) {
         //self.clients.lock().unwrap().push(stream);
-        self.clients.push(Arc::new(Mutex::new(stream)));
+        let mut prov_ptr = self.comn_prov.lock().unwrap();
+        prov_ptr.clients.push(Arc::new(Mutex::new(stream)));
+        prov_ptr.network_buffer.push(Arc::new(Mutex::new("0, 0, 0".to_string())));
+
         self.map.lock().unwrap().players.push(Player::new(0.0,0.0,0.0));
         self.map.lock().unwrap().players_on_map.push(PlayerOnMap::new(0,0,0));
     }
