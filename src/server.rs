@@ -1,39 +1,47 @@
-#![allow(unused)]
+#![deny(unused)]
+#![allow(dead_code)]
 
-extern crate regex;
-
-use std::net::{self,TcpStream};
-use std::io::{self,Write,BufReader,BufWriter,BufRead};
-use std::sync::{mpsc,Arc,Mutex};
-use std::thread;
-use std::time::Duration;
-use std::process::exit;
-use regex::Regex;
-
-use std::ops::{Deref,DerefMut};
-
-use super::game::{Map,Player};
-use super::network::{
-    CommunicationProvider,
-    start_reading_coordinate,
-    read_by_buffer,
-    parse_client_info,
+use std::{
+    net::{
+        self,
+        TcpStream,
+    },
+    io::{
+        Write,
+        BufReader,
+        BufWriter,
+    },
+    sync::{
+        mpsc,
+        Arc,
+        Mutex,
+    },
+    thread,
 };
-use super::time::{LoopTimer};
-use super::game;
+
+use super::{
+    game::Map,
+    network::{
+        CommunicationProvider,
+        start_reading_coordinate,
+        read_by_buffer,
+        parse_client_info,
+    },
+    time::LoopTimer,
+    game,
+};
 
 pub struct GameController {
     pub comn_prov: Arc<Mutex<CommunicationProvider>>,
-    pub player_limit : usize,
-    pub map : Arc<Mutex<Map>>,
-    pub timer : LoopTimer, //This is doing tasks per the time
+    pub player_limit: usize,
+    pub map: Arc<Mutex<Map>>,
+    pub timer: LoopTimer, //This is doing tasks per the time
 }
 
 impl GameController {
-    pub fn new(map : Map) -> GameController {
+    pub fn new(map: Map) -> GameController {
         let l = 1; //Players
         GameController{
-            //clients : Arc::new(Mutex::new(Vec::new())),
             player_limit: l,
             map: Arc::new(Mutex::new(map)),
             timer: LoopTimer::new(),
@@ -46,8 +54,7 @@ impl GameController {
     }
 
     pub fn wait_for_players(&mut self) {
-        //let listener = net::TcpListener::bind("2400:4051:99c2:5800:9978:6c9:2c0c:8520:5522").unwrap(); //Create Listener
-        let listener = net::TcpListener::bind("2400:4051:99c2:5800:11a4:53a7:248:a471:5522").unwrap(); //Create Listener
+        let listener = net::TcpListener::bind("2400:4051:99c2:58f0:11a4:53a7:248:a471:5522").unwrap(); //Create Listener
         let mut count = 0;
 
         for stream in listener.incoming() { //Wait for players
@@ -80,6 +87,7 @@ impl GameController {
             self.comn_prov.lock().unwrap().clients.clone();
         let clone_map_for_announce_pac_coordinate = self.map.clone();
         let clone_map_for_announce_bait_info = self.map.clone();
+
         self.timer.subscribe(Box::new(move || { //Per 0.2 seconds, Program executes this closure.
             clone_map_for_announce_pac_coordinate.lock().unwrap().move_pacman();
             let msg = &clone_map_for_announce_pac_coordinate.lock().unwrap().coordinate_to_json_pacman().into_bytes();
@@ -87,7 +95,7 @@ impl GameController {
             for client_arc in &clone_clients_for_announce_pac_coordinate {
                 match client_arc.lock() {
                     Ok(mut client) => {
-                        client.write(msg); //And send to clients. (Can't use announce methot)
+                       client.write(msg).expect("Could now send pac coordinate"); //And send to clients. (Can't use announce methot)
                     },
                     Err(_) => {
                         println!("Could not send pacman coordiante for client");
@@ -103,7 +111,7 @@ impl GameController {
             for client_arc in &clone_clients_for_announce_bait_info {
                 match client_arc.lock() {
                     Ok(mut client) => {
-                        client.write(&msg); //And send to clients. (Can't use announce methot)
+                        client.write(&msg).expect("Could not send bait info"); //And send to clients. (Can't use announce methot)
                     },
                     Err(_) => {
                         println!("Could not send pacman coordiante for client");
@@ -115,9 +123,9 @@ impl GameController {
 
         self.distribute_map();
 
-        let buffer_streams : Vec<Arc<Mutex<BufStream>>> // USAGE: access by index and mutex proc
+        let buffer_streams: Vec<Arc<Mutex<BufStream>>> // USAGE: access by index and mutex proc
             = self.comn_prov.lock().unwrap().clients.iter().map(|c| // each clients
-                match(c.lock()) {
+                match c.lock() {
                     Ok(client) => {
                         Arc::new(
                             Mutex::new(
@@ -141,12 +149,12 @@ impl GameController {
             let (sender, receiver) = mpsc::channel();
             receivers.push(receiver);
             thread::spawn(move || {
-                sender.send(read_by_buffer(cloned));
+                sender.send(read_by_buffer(cloned)).unwrap();
             });
         }
 
         for r in receivers {
-            match(r.recv()) {
+            match r.recv() {
                 Ok(msg) => {
                     if msg != "END_EFFECT\n" {
                         panic!("Invalid message in wait client effect. data is {}", msg);
@@ -198,25 +206,31 @@ impl GameController {
             */
         }
     }
+}
 
+impl Drop for GameController {
+    fn drop(&mut self) {
+        println!("Game crushed");
+    }
 }
 
 pub struct BufStream {
-    pub rd : BufReader<TcpStream>,
-    pub wr : BufWriter<TcpStream>,
+    pub rd: BufReader<TcpStream>,
+    pub wr: BufWriter<TcpStream>,
 }
 
 impl BufStream {
-    pub fn new(stream : &TcpStream) -> BufStream {
+    pub fn new(stream: &TcpStream) -> BufStream {
         BufStream{
-            rd : BufReader::new(
+            rd: BufReader::new(
                 stream.try_clone().unwrap()),
-            wr : BufWriter::new(
+            wr: BufWriter::new(
                 stream.try_clone().unwrap())}
     }
 }
 
-pub fn print_typename<T>(_ : T) {
-    println!("type = {}",std::any::type_name::<T>());
+#[allow(unused)]
+pub fn print_typename<T>(_: T) {
+    println!("type = {}", std::any::type_name::<T>());
 }
 

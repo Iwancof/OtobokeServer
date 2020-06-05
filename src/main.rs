@@ -1,40 +1,40 @@
-#![allow(unused)]
+#![deny(unused)]
+#![allow(dead_code)]
 
 mod server;
 mod game;
 mod network;
 mod time;
 mod algorithm;
+mod map;
 
-use std::thread;
-use std::time::{Duration,SystemTime};
 use std::env;
-
+use map::MapInfo;
 
 fn main() { //For one game
     println!("\x1b[2J");
     println!("\x1b[0;0H");
 
-    let args : Vec<String> = env::args().collect();
+    let args: Vec<String> = env::args().collect();
     let mut map_path = args[0].trim_matches(|c| c != '\\').to_string();
     map_path += "..\\..\\maps\\default_map";
 
     println!("Use default map. {}",map_path);
 
+    for e in MapInfo::build_by_filename(map_path).get_inferpoints() {
+        println!("{}", e);
+    }
+
+    /*
     let mut map = game::Map::create_by_filename(map_path);
     map.initialize();
 
-    
-    //map.show_map();
-    //println!("{}",game_instance.map_to_String());
 
-
-    //println!("{}",map.count_on(1,1));
-    //algorithm::inter_point_test();
     open_server(map);
+    */
 }
 
-fn open_server(map : game::Map) {
+fn open_server(map: game::Map) {
     let mut g = server::GameController::new(map);
     g.show_game_details();
     println!("Game initialized");
@@ -46,8 +46,7 @@ fn open_server(map : game::Map) {
     g.start_game();
 }
 
-fn print_on(msg : String,wos : usize,hos : usize) {
-    
-    print!("\x1b[{};{}H{}",hos,wos,msg);
+fn print_on(msg: String, wos: usize, hos: usize) {
+    print!("\x1b[{};{}H{}", hos, wos, msg);
 }
 

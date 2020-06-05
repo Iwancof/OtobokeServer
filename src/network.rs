@@ -1,17 +1,33 @@
-#![allow(unused)]
+#![deny(unused)]
+#![allow(dead_code)]
 
-extern crate regex;
+use std::{
+    net::{
+        self,
+        TcpStream,
+    },
+    io::{
+        Write,
+        BufRead,
+        Error,
+    },
+    sync::{
+        Arc,
+        Mutex,
+    },
+    thread,
+};
 
-use std::net::{self,TcpStream};
-use std::io::{Write,BufReader,BufWriter,BufRead,Error, Read};
-use regex::Regex;
-
-use std::sync::{mpsc,Arc,Mutex};
-use std::thread;
-use std::ops::{Deref,DerefMut};
-
-use super::server::{GameController,BufStream};
-use super::game::{Player,PlayerOnMap};
+use super::{
+    server::{
+        GameController,
+        BufStream,
+    },
+    game::{
+        Player,
+        PlayerOnMap,
+    },
+};
 
 pub struct CommunicationProvider {
     pub clients: Vec<Arc<Mutex<TcpStream>>>, 
@@ -30,7 +46,7 @@ impl CommunicationProvider {
         for client_arc in &self.clients { 
             match client_arc.lock() {
                 Ok(mut client) => {
-                    client.write(message_byte);
+                    client.write(message_byte).unwrap();
                 },
                 Err(_) => {
                     println!("Could not send data");
@@ -42,7 +58,7 @@ impl CommunicationProvider {
         for client_arc in &self.clients { 
             match client_arc.lock() {
                 Ok(mut client) => {
-                    client.write(msg);
+                    client.write(msg).unwrap();
                 },
                 Err(_) => {
                     println!("Could not send data");
@@ -60,11 +76,11 @@ impl GameController {
         self.comn_prov.lock().unwrap().announce_message(msg);
     }
 
-    pub fn player_join_initialize(&mut self,mut stream : net::TcpStream) {
+    pub fn player_join_initialize(&mut self, stream: net::TcpStream) {
         let json = "{".to_string() + &format!(r#""counter":{}"#,(self.comn_prov.lock().unwrap().clients.len())) + "}|";
         match send_message(&stream,json) {
             Ok(_) => {
-                println!("player joined! player details : {:?}",stream);
+                println!("player joined! player details : {:?}", stream);
                 self.player_join(stream);
             }
             Err(_) => {
@@ -73,7 +89,7 @@ impl GameController {
         }
     }
 
-    pub fn player_join(&mut self,mut stream : net::TcpStream) {
+    pub fn player_join(&mut self,stream: net::TcpStream) {
         //self.clients.lock().unwrap().push(stream);
         let mut prov_ptr = self.comn_prov.lock().unwrap();
         prov_ptr.clients.push(Arc::new(Mutex::new(stream)));
@@ -85,8 +101,8 @@ impl GameController {
     
 }
 
-pub fn parse_client_info(msg : String) -> Vec<f32> {
-    msg.split(',').map(|e| match(e.parse()) {
+pub fn parse_client_info(msg: String) -> Vec<f32> {
+    msg.split(',').map(|e| match e.parse() {
         Ok(o) => o,
         Err(_) => {
             //self.error(i);
@@ -94,18 +110,16 @@ pub fn parse_client_info(msg : String) -> Vec<f32> {
         }
     }).collect()
 }
-
-pub fn send_message(mut stream : &net::TcpStream,msg : String) -> Result<usize, Error> {
+pub fn send_message(mut stream: &net::TcpStream,msg: String) -> Result<usize, Error> {
     stream.write(msg.as_bytes())
 }
-pub fn send_message_byte(mut stream : &net::TcpStream,msg : &[u8]) -> Result<usize, Error> {
+pub fn send_message_byte(mut stream: &net::TcpStream,msg: &[u8]) -> Result<usize, Error> {
     stream.write(msg)
 }
-
-pub fn read_by_buffer(br : Arc<Mutex<BufStream>>) -> String {
+pub fn read_by_buffer(br: Arc<Mutex<BufStream>>) -> String {
     let mut ret = String::new();
     let reader = &mut br.lock().expect("Could not lock buffer stream").rd;
-    reader.read_line(&mut ret);
+    reader.read_line(&mut ret).unwrap();
     ret
 }
 
@@ -116,10 +130,10 @@ pub fn start_reading_coordinate(stream: &Vec<Arc<Mutex<BufStream>>>, data_buffer
         let mut data_buffer = data_buffer_non_static.clone();
         thread::spawn(move || {
             loop {
-                match(stream_arc.lock()) {
+                match stream_arc.lock() {
                     Ok(mut stream) => {
                         let mut read_data = String::new();
-                        stream.rd.read_line(&mut read_data);
+                        stream.rd.read_line(&mut read_data).unwrap();
                         println!("got data from client {}", i);
                         *(data_buffer[i].lock().unwrap()) = read_data.clone();
                     },

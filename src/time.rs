@@ -1,16 +1,24 @@
-#![allow(unused)]
+#![deny(unused)]
+#![allow(dead_code)]
 
-use std::time::{Duration,SystemTime,Instant};
-use std::thread;
-use std::sync::{Arc,Mutex};
-use std::ops::{Deref,DerefMut};
+use std::{
+    time::{
+        Duration,
+        Instant,
+    },
+    thread,
+    sync::{
+        Arc,
+        Mutex,
+    },
+};
 
 pub struct LoopTimerUnArc {
-    latest : Instant,
-    totals : Vec<u128>,
-    tasks : Vec<Box<dyn Fn() -> () + Send>>,
-    limits : Vec<u128>,
-    count : usize,
+    latest: Instant,
+    totals: Vec<u128>,
+    tasks: Vec<Box<dyn Fn() -> () + Send>>,
+    limits: Vec<u128>,
+    count: usize,
 }
 
 impl LoopTimerUnArc {
@@ -51,27 +59,23 @@ impl LoopTimerUnArc {
 }
 
 pub struct LoopTimer {
-    item : Arc<Mutex<LoopTimerUnArc>>,
+    item: Arc<Mutex<LoopTimerUnArc>>,
 }
 
 impl LoopTimer {
     pub fn new() -> LoopTimer {
         LoopTimer {
-            item : Arc::new(Mutex::new(LoopTimerUnArc::new())) 
+            item: Arc::new(Mutex::new(LoopTimerUnArc::new())) 
         }
     }
-    pub fn subscribe(&mut self,func : Box<dyn Fn() -> () + Send>,limit : u128) -> usize {
-        self.item.lock().unwrap().subscribe(func,limit)
-    }
-    pub fn update(&mut self) {
-        //self.item.lock().unwrap().update();
+    pub fn subscribe(&mut self, func: Box<dyn Fn() -> () + Send>, limit: u128) -> usize {
+        self.item.lock().unwrap().subscribe(func, limit)
     }
     pub fn start(&mut self) {
         let clone = self.item.clone();
         thread::spawn(move || {
             loop { 
                 clone.lock().unwrap().update();
-                clone.lock();
                 thread::sleep(Duration::from_millis(50));
             }
         });
