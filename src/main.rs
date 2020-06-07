@@ -1,4 +1,4 @@
-#![deny(unused)]
+#![allow(unused)]
 #![allow(dead_code)]
 
 mod server;
@@ -21,21 +21,15 @@ fn main() { //For one game
 
     println!("Use default map. {}",map_path);
 
-    for e in MapInfo::build_by_filename(map_path).get_inferpoints() {
-        println!("{}", e);
-    }
+    let l = 1; // players
+    let mut map = map::MapInfo::build_by_filename(map_path);
+    let mut game = game::Game::new(map, l);
 
-    /*
-    let mut map = game::Map::create_by_filename(map_path);
-    map.initialize();
-
-
-    open_server(map);
-    */
+    open_server(game);
 }
 
-fn open_server(map: game::Map) {
-    let mut g = server::GameController::new(map);
+fn open_server(game: game::Game) {
+    let mut g = server::GameController::new(game);
     g.show_game_details();
     println!("Game initialized");
 

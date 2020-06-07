@@ -23,10 +23,6 @@ use super::{
         GameController,
         BufStream,
     },
-    game::{
-        Player,
-        PlayerOnMap,
-    },
 };
 
 pub struct CommunicationProvider {
@@ -95,8 +91,11 @@ impl GameController {
         prov_ptr.clients.push(Arc::new(Mutex::new(stream)));
         prov_ptr.network_buffer.push(Arc::new(Mutex::new("0, 0, 0".to_string())));
 
+        /*
         self.map.lock().unwrap().players.push(Player::new(0.0,0.0,0.0));
         self.map.lock().unwrap().players_on_map.push(PlayerOnMap::new(0,0,0));
+        */
+        self.register_player();
     }
     
 }

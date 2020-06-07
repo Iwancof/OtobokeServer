@@ -1,4 +1,4 @@
-#![deny(unused)]
+#![allow(unused)]
 #![allow(dead_code)]
 
 use std::{
@@ -21,6 +21,7 @@ use std::{
 
 use super::{
     game::Map,
+    game::Game,
     network::{
         CommunicationProvider,
         start_reading_coordinate,
@@ -29,21 +30,24 @@ use super::{
     },
     time::LoopTimer,
     game,
+    map::{
+        self,
+        GameClient,
+    }
 };
 
 pub struct GameController {
     pub comn_prov: Arc<Mutex<CommunicationProvider>>,
     pub player_limit: usize,
-    pub map: Arc<Mutex<Map>>,
+    pub game: Arc<Mutex<Game>>,
     pub timer: LoopTimer, //This is doing tasks per the time
 }
 
 impl GameController {
-    pub fn new(map: Map) -> GameController {
-        let l = 1; //Players
+    pub fn new(game: Game) -> GameController {
         GameController{
-            player_limit: l,
-            map: Arc::new(Mutex::new(map)),
+            player_limit: game. number_of_player,
+            game: Arc::new(Mutex::new(game)),
             timer: LoopTimer::new(),
             comn_prov: Arc::new(Mutex::new(CommunicationProvider::new())),
         }
@@ -69,9 +73,13 @@ impl GameController {
             }
         }
     }
+    pub fn register_player(&self) {
+        self.game.lock().unwrap().map_proc.lock().unwrap().players.push(GameClient::default());
+    }
 
     pub fn distribute_map(&mut self) {
-        let map_data = self.map.lock().unwrap().map_to_string();
+        //let map_data = self.map.lock().unwrap().map_to_string();
+        let map_data = self.game.lock().unwrap().map_proc.lock().unwrap().map.map_to_string() + "|";
         self.announce_wrap(map_data);
         self.announce_wrap(
             r#"{"value":""#.to_string() + &(self.player_limit.to_string()) + r#""}|"#);
@@ -85,12 +93,12 @@ impl GameController {
             self.comn_prov.lock().unwrap().clients.clone();
         let clone_clients_for_announce_bait_info = 
             self.comn_prov.lock().unwrap().clients.clone();
-        let clone_map_for_announce_pac_coordinate = self.map.clone();
-        let clone_map_for_announce_bait_info = self.map.clone();
+        let clone_game_for_announce_pac_coordinate = self.game.clone();
+        let clone_game_for_announce_bait_info = self.game.clone();
 
         self.timer.subscribe(Box::new(move || { //Per 0.2 seconds, Program executes this closure.
-            clone_map_for_announce_pac_coordinate.lock().unwrap().move_pacman();
-            let msg = &clone_map_for_announce_pac_coordinate.lock().unwrap().coordinate_to_json_pacman().into_bytes();
+            clone_game_for_announce_pac_coordinate.lock().unwrap().move_pacman();
+            let msg = &clone_game_for_announce_pac_coordinate.lock().unwrap().coordinate_to_json_pacman().into_bytes();
                 //Pacman coordinate convert to json here.
             for client_arc in &clone_clients_for_announce_pac_coordinate {
                 match client_arc.lock() {
@@ -106,7 +114,7 @@ impl GameController {
         200 //Time span
         );
         self.timer.subscribe(Box::new(move || {
-            let msg = game::paced_vec_to_string(clone_map_for_announce_bait_info.lock().unwrap().paced_collection.lock().unwrap().clone()).into_bytes();
+            let msg = game::paced_vec_to_string(clone_game_for_announce_bait_info.lock().unwrap().get_paced_coordinates_as_raw()).into_bytes();
             
             for client_arc in &clone_clients_for_announce_bait_info {
                 match client_arc.lock() {
@@ -118,7 +126,7 @@ impl GameController {
                     }
                 }
             }
-            *clone_map_for_announce_bait_info.lock().unwrap().paced_collection.lock().unwrap() = vec![];
+            clone_game_for_announce_bait_info.lock().unwrap().clear_paced_collection();
         }),200);
 
         self.distribute_map();
@@ -175,7 +183,7 @@ impl GameController {
         );
 
         let cloned_network_buffer = self.comn_prov.lock().unwrap().network_buffer.clone();
-        let cloned_map = self.map.clone();
+        let cloned_game = self.game.clone();
         let cloned_prov = self.comn_prov.clone();
 
         self.timer.subscribe(Box::new(move || {
@@ -186,10 +194,10 @@ impl GameController {
 
                 let parse_result = parse_client_info(player_lastest_message);
                 if parse_result.len() == 3 {
-                    cloned_map.lock().unwrap().update_coordinate(i, parse_result);
+                    cloned_game.lock().unwrap().update_coordinate(i, parse_result);
                 }
             };
-            let received_data = cloned_map.lock().unwrap().coordinate_to_json();
+            let received_data = cloned_game.lock().unwrap().coordinate_to_json();
             cloned_prov.lock().unwrap().announce_message(received_data);
         }), 100);
 

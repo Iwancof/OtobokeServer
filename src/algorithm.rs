@@ -3,6 +3,10 @@
 use std::fs;
 use std::fmt;
 use super::game::{Map,PlayerOnMap,Player};
+use super::map::{
+    MapProcAsGame,
+    QuanCoord,
+};
 use std::ops::Sub;
 
 impl Map {
@@ -211,4 +215,15 @@ pub fn convert_system_test() {
     
     assert!(converted == PlayerOnMap::new2(3,1));
 }
+
+
+
+impl MapProcAsGame { // for AI
+    // Easy AI
+    pub fn update_target(&mut self) -> usize {
+        0
+    }
+
+}
+
 

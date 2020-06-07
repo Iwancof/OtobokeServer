@@ -7,6 +7,55 @@ use std::sync::{Arc,Mutex};
 use std::time::{Duration,SystemTime,Instant};
 use std::thread;
 
+use super::map::{
+    MapProcAsGame,
+    MapInfo,
+    QuanCoord,
+    RawCoord,
+};
+
+pub struct Game {
+    pub map_proc: Arc<Mutex<MapProcAsGame>>,
+    pub pm_score: i32,
+    pub number_of_player: usize,
+    pub game_id: i32,
+}
+
+impl Game {
+    pub fn new(map: MapInfo, num_of_player: usize) -> Self {
+        Self {
+            map_proc: Arc::new(Mutex::new(MapProcAsGame::new(map, num_of_player))),
+            pm_score: 0,
+            number_of_player: num_of_player,
+            game_id: -1,
+        }
+    }
+    pub fn move_pacman(&mut self) {
+        println!("Move pacman");
+    }
+    pub fn coordinate_to_json_pacman(&self) -> String {
+        println!("Coordinate to json pacman");
+        "coordiante".to_string()
+    }
+    pub fn update_coordinate(&mut self, i: usize, v: Vec<f32>) {
+        // the player index, the player coordinate vector(raw)
+        println!("Update coordinate"); 
+    }
+    pub fn coordinate_to_json(&self) -> String {
+        println!("Coordinate to json");
+        "coordinate".to_string()
+    }
+    pub fn get_paced_coordinates_as_raw(&self) -> Vec<RawCoord> {
+        println!("Get paced coordinates");
+        vec![]
+    }
+    pub fn clear_paced_collection(&mut self) {
+        println!("Clear paced collection");
+    }
+
+}
+
+
 const SIZE : f32 = 1.05;
 const TARGETS : [Set;5] = [
     Set{x:0,y:1},
@@ -15,6 +64,7 @@ const TARGETS : [Set;5] = [
     Set{x:0,y:-1},
     Set{x:0,y:0},
 ];
+
 
 
 pub struct Map {
@@ -102,6 +152,9 @@ impl Map {
 
     pub fn initialize(&mut self) {
         let tmp = self.find_infer_point();
+        for x in &tmp {
+            println!("{}", x);
+        }
         self.infer_points = self.convert_system(tmp);
     }
 
@@ -355,7 +408,7 @@ pub fn test_map_creater() -> Map {
 }
 */
 
-pub fn paced_vec_to_string(v : Vec<PlayerOnMap>) -> String {
+pub fn paced_vec_to_string(v : Vec<RawCoord>) -> String {
     if v.len() == 0 { return "".to_string(); }
     let mut ret = r#"PACCOL;{"Coordinate":["#.to_string();
     for i in 0..v.len() - 1 {

@@ -32,7 +32,7 @@ impl LoopTimerUnArc {
         }
     }
 
-    pub fn subscribe(&mut self,func : Box<dyn Fn() -> () + Send>,limit : u128) -> usize {
+    pub fn subscribe(&mut self, func : Box<dyn Fn() -> () + Send>, limit : u128) -> usize {
        self.totals.push(0);
        self.tasks.push(func);
        self.limits.push(limit);
