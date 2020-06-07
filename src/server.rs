@@ -58,7 +58,7 @@ impl GameController {
     }
 
     pub fn wait_for_players(&mut self) {
-        let listener = net::TcpListener::bind("2400:4051:99c2:58f0:11a4:53a7:248:a471:5522").unwrap(); //Create Listener
+        let listener = net::TcpListener::bind("localhost:5522").unwrap(); //Create Listener
         let mut count = 0;
 
         for stream in listener.incoming() { //Wait for players
@@ -103,7 +103,8 @@ impl GameController {
             for client_arc in &clone_clients_for_announce_pac_coordinate {
                 match client_arc.lock() {
                     Ok(mut client) => {
-                       client.write(msg).expect("Could now send pac coordinate"); //And send to clients. (Can't use announce methot)
+                        client.write(msg).expect("Could now send pac coordinate"); //And send to clients. (Can't use announce methot)
+                    
                     },
                     Err(_) => {
                         println!("Could not send pacman coordiante for client");
@@ -190,7 +191,7 @@ impl GameController {
             for i in 0..client_count {
                 let player_lastest_message = cloned_network_buffer[i].lock().unwrap().clone();
                 // get lastest player info
-                println!("\x1b[10;0Hclient[{}] at {}",i,&player_lastest_message);
+                //println!("\x1b[10;0Hclient[{}] at {}",i,&player_lastest_message);
 
                 let parse_result = parse_client_info(player_lastest_message);
                 if parse_result.len() == 3 {

@@ -7,12 +7,20 @@ use std::sync::{Arc,Mutex};
 use std::time::{Duration,SystemTime,Instant};
 use std::thread;
 
-use super::map::{
-    MapProcAsGame,
-    MapInfo,
-    QuanCoord,
-    RawCoord,
+use super::{
+    map::{
+        MapProcAsGame,
+        MapInfo,
+        QuanCoord,
+        RawCoord,
+        UNIT_SIZE,
+    },
+    json::{
+        json_build,
+        json_build_vec,
+    }
 };
+
 
 pub struct Game {
     pub map_proc: Arc<Mutex<MapProcAsGame>>,
@@ -31,26 +39,36 @@ impl Game {
         }
     }
     pub fn move_pacman(&mut self) {
-        println!("Move pacman");
+        self.map_proc.lock().unwrap().pacman.x += 1;
     }
     pub fn coordinate_to_json_pacman(&self) -> String {
-        println!("Coordinate to json pacman");
-        "coordiante".to_string()
+        let ret = json_build("PACMAN", "Pacman", &self.map_proc.lock().unwrap().pacman.anti_quantize()) + "|";
+        //println!("result of 'coordinate_to_json_pacman' is {}", ret);
+        ret
     }
     pub fn update_coordinate(&mut self, i: usize, v: Vec<f32>) {
         // the player index, the player coordinate vector(raw)
-        println!("Update coordinate"); 
+        //println!("Update coordinate"); 
+
+        let client_coord_ptr = &mut self.map_proc.lock().unwrap().players[i].coord;
+        client_coord_ptr.x = ((v[0] - UNIT_SIZE / 2. + 1.) / UNIT_SIZE) as i32;
+        client_coord_ptr.y = ((v[1] - UNIT_SIZE / 2. + 1.) / UNIT_SIZE) as i32;
     }
     pub fn coordinate_to_json(&self) -> String {
-        println!("Coordinate to json");
-        "coordinate".to_string()
+        let ret = json_build_vec("PLAYER", "Coordinate", 
+                       &self.map_proc.lock().unwrap().players.
+                       iter().map(|x| x.coord.anti_quantize()).collect()) + "|";
+        //println!("result of 'coordinate_to_json' is {}", ret);
+        ret
     }
     pub fn get_paced_coordinates_as_raw(&self) -> Vec<RawCoord> {
-        println!("Get paced coordinates");
-        vec![]
+        //println!("Get paced coordinates");
+        self.map_proc.lock().unwrap().
+            paced_collection.lock().unwrap().
+                iter().map(|x| x.anti_quantize()).collect()
     }
     pub fn clear_paced_collection(&mut self) {
-        println!("Clear paced collection");
+        *self.map_proc.lock().unwrap().paced_collection.lock().unwrap() = vec![];
     }
 
 }

@@ -13,6 +13,10 @@ use std::{
     },
 };
 
+// for test use
+#[allow(unused)]
+use std::ops::{Deref, DerefMut};
+
 pub struct LoopTimerUnArc {
     latest: Instant,
     totals: Vec<u128>,

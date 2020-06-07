@@ -5,7 +5,13 @@ use std::fs;
 use std::sync::{Arc,Mutex};
 use std::fmt;
 
-static UNIT_SIZE: f32 = 1.05;
+use super::{
+    serde_derive,
+    serde,
+    serde_json,
+};
+
+pub static UNIT_SIZE: f32 = 1.05;
 
 pub struct MapInfo {
     pub width : usize,
@@ -42,7 +48,19 @@ pub struct QuanCoord {
     pub y: i32,
 }
 
-#[derive(Copy, Clone)]
+#[test]
+fn serialize_test() {
+    let x = RawCoord {
+        x: 1.1,
+        y: 2.2,
+        z: 3.3,
+    };
+    let result = serde_json::to_string(&x).unwrap();
+    println!("the result is {}", result);
+    assert_eq!(1, 2);
+}
+
+#[derive(Copy, Clone, Serialize)]
 pub struct RawCoord {
     // for use communicate with clients(Unity)
     pub x: f32,
@@ -158,8 +176,10 @@ impl MapProcAsGame {
         Self {
             pm_inferpoints: map.get_inferpoints(),
             map: map,
-            players: vec![GameClient::default(); player_number],
-            pacman: QuanCoord::default(),
+            players: vec![],
+            //pacman: QuanCoord::default(),
+            // dont erase.
+            pacman: QuanCoord{ x: 0, y: 10 },
             pm_target: 0,
             pm_state: PMState::Normal,
             pm_prev_place: QuanCoord::default(),

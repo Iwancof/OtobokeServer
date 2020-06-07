@@ -7,6 +7,14 @@ mod network;
 mod time;
 mod algorithm;
 mod map;
+mod json;
+
+#[macro_use]
+extern crate serde_derive;
+#[macro_use]
+extern crate serde;
+#[macro_use]
+extern crate serde_json;
 
 use std::env;
 use map::MapInfo;
@@ -23,7 +31,7 @@ fn main() { //For one game
 
     let l = 1; // players
     let mut map = map::MapInfo::build_by_filename(map_path);
-    let mut game = game::Game::new(map, l);
+    let mut game = game::Game::new(map, 1);
 
     open_server(game);
 }
