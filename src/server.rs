@@ -20,7 +20,6 @@ use std::{
 };
 
 use super::{
-    game::Map,
     game::Game,
     network::{
         CommunicationProvider,
