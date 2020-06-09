@@ -384,5 +384,42 @@ fn map_file_import_test() {
 #[test]
 fn search_movable_point_test() {
     let map = create_map_mock();
-    assert_eq!(map.get_can_move_on(QuanCoord{x: 2, y: 2}), QuanCoord{x: 2, y: 3});
+    assert!(vec_group_eq(&map.get_can_move_on(QuanCoord{x: 2, y: 2}), &vec![QuanCoord{x: 2, y: 3}]));
+    assert!(vec_group_eq(&map.get_can_move_on(QuanCoord{x: 2, y: 3}), &vec![QuanCoord{x: 1, y: 3}, QuanCoord{x: 2, y: 2}, QuanCoord{x: 2, y: 4}, QuanCoord{x: 3, y: 3}]));
+    assert!(vec_group_eq(&map.get_can_move_on(QuanCoord{x: 4, y: 2}), &vec![QuanCoord{x: 0, y: 2}, QuanCoord{x: 4, y: 1}, QuanCoord{x: 4, y: 3}]));
+    assert!(vec_group_eq(&map.get_can_move_on(QuanCoord{x: 0, y: 3}), &vec![QuanCoord{x: 0, y: 4}, QuanCoord{x: 0, y: 2}, QuanCoord{x: 1, y: 3}, QuanCoord{x: 4, y: 3}]));
+    assert!(vec_group_eq(&map.get_can_move_on(QuanCoord{x: 4, y: 4}), &vec![QuanCoord{x: 0, y: 4}, QuanCoord{x: 4, y: 0}, QuanCoord{x: 4, y: 3}]));
+}
+// 01010 <- (4, 4)
+// 00000
+// 31014
+// 10110
+// 01110
+// ^
+// (0, 0)
+
+
+#[test]
+fn vec_group_eq_test() {
+    let a = vec![1, 2, 3, 4];
+    let b = vec![4, 3, 2, 1];
+    let c = vec![1, 2, 3];
+    let d = vec![1, 2, 3, 5];
+
+    assert_eq!(vec_group_eq(&a, &a), true);
+    assert_eq!(vec_group_eq(&a, &b), true);
+    assert_eq!(vec_group_eq(&a, &c), false);
+    assert_eq!(vec_group_eq(&a, &d), false);
+    assert_eq!(vec_group_eq(&b, &a), true);
+    assert_eq!(vec_group_eq(&b, &a), true);
+    assert_eq!(vec_group_eq(&b, &b), true);
+    assert_eq!(vec_group_eq(&b, &c), false);
+    assert_eq!(vec_group_eq(&b, &d), false);
+}
+
+fn vec_group_eq<T: PartialEq>(v: &Vec<T>, w: &Vec<T>) -> bool {
+    if v.len() != w.len() {
+        return false;
+    }
+    !v.iter().any(|e| !w.iter().any(|x| *x == *e))
 }
