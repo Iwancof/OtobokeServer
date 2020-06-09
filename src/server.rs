@@ -57,8 +57,11 @@ impl GameController {
     }
 
     pub fn wait_for_players(&mut self) {
-        let listener = net::TcpListener::bind("localhost:5522").unwrap(); //Create Listener
+        let address = "192.168.2.129:5522";
+        let listener = net::TcpListener::bind(address).unwrap(); //Create Listener
         let mut count = 0;
+
+        println!("Server started listening at {}", address);
 
         for stream in listener.incoming() { //Wait for players
             match stream {
@@ -96,7 +99,7 @@ impl GameController {
         let clone_game_for_announce_bait_info = self.game.clone();
 
         self.timer.subscribe(Box::new(move || { //Per 0.2 seconds, Program executes this closure.
-            clone_game_for_announce_pac_coordinate.lock().unwrap().move_pacman();
+            clone_game_for_announce_pac_coordinate.lock().unwrap().move_pacman_wrap();
             let msg = &clone_game_for_announce_pac_coordinate.lock().unwrap().coordinate_to_json_pacman().into_bytes();
                 //Pacman coordinate convert to json here.
             for client_arc in &clone_clients_for_announce_pac_coordinate {
@@ -199,7 +202,7 @@ impl GameController {
             };
             let received_data = cloned_game.lock().unwrap().coordinate_to_json();
             cloned_prov.lock().unwrap().announce_message(received_data);
-        }), 100);
+        }), 50);
 
         self.timer.start(); //Start doing tasks
         

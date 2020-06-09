@@ -31,13 +31,15 @@ fn main() { //For one game
 
     let l = 1; // players
     let mut map = map::MapInfo::build_by_filename(map_path);
-    let mut game = game::Game::new(map, 1);
+    let mut game = game::Game::new(map, l);
 
     open_server(game);
 }
 
 fn open_server(game: game::Game) {
     let mut g = server::GameController::new(game);
+    g.game.lock().unwrap().game_init_call_once();
+
     g.show_game_details();
     println!("Game initialized");
 

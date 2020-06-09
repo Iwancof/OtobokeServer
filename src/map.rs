@@ -4,6 +4,7 @@ use std::ops::Sub;
 use std::fs;
 use std::sync::{Arc,Mutex};
 use std::fmt;
+use std::collections::HashMap;
 
 use super::{
     serde_derive,
@@ -12,11 +13,13 @@ use super::{
 };
 
 pub static UNIT_SIZE: f32 = 1.05;
+pub static UNIQUE_ELEMENTS: [i32; 2] = [3, 4];
 
 pub struct MapInfo {
-    pub width : usize,
-    pub height :usize,
-    pub field : Vec<Vec<i32>>,
+    pub width: usize,
+    pub height: usize,
+    pub field: Vec<Vec<i32>>,
+    pub unique_points: HashMap<i32, QuanCoord>,
 }
 
 pub struct MapProcAsGame {
@@ -33,7 +36,7 @@ pub struct MapProcAsGame {
 #[derive(Copy, Clone)]
 pub struct GameClient {
     pub coord: QuanCoord,
-    //pub id: i32,
+    pub raw_coord: RawCoord,
 }
 
 pub enum PMState {
@@ -42,22 +45,10 @@ pub enum PMState {
 }
 
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct QuanCoord {
     pub x: i32,
     pub y: i32,
-}
-
-#[test]
-fn serialize_test() {
-    let x = RawCoord {
-        x: 1.1,
-        y: 2.2,
-        z: 3.3,
-    };
-    let result = serde_json::to_string(&x).unwrap();
-    println!("the result is {}", result);
-    assert_eq!(1, 2);
 }
 
 #[derive(Copy, Clone, Serialize)]
@@ -72,35 +63,70 @@ impl GameClient {
     pub fn default() -> Self {
         Self {
             coord: QuanCoord::default(),
+            raw_coord: RawCoord::default(),
         }
     }
 }
 
 impl MapInfo {
     pub fn build_by_string(map_data: String) -> Self {
-        let row : Vec<(usize,String)>
-            = map_data.split('\n').map(|s| s.to_string()).enumerate().collect();
+        // first, create Vec<String> split by "\n"
+        let sliced_map: Vec<String> = map_data.split('\n').map(|s| s.to_string()).collect();
         
-        let hei = row.len();
-        let wid = row[0].1.len();
+        // second, create Vec<Vec<char>>
+        let char_map: Vec<Vec<char>> = sliced_map.iter().map(|s| s.chars().collect()).collect();
 
-        println!("Map created. details, {},{} ",hei - 1,wid - 1);
+        // and, each Vec<char>'s char convert to map_chip integer.
+        let mirror_map_data: Vec<Vec<i32>> = char_map.iter().take_while(|v| v.len() != 0).
+            map(|vector| vector.iter().
+                map(|c| *c as i32 - '0' as i32).take_while(|v| Self::is_map_chip(*v)).
+                collect()
+            ).collect();
 
-        let mut map_tmp : Vec<Vec<i32>> = vec![vec![0;hei];wid];
+        let h = mirror_map_data.len();
+        if h == 0 {
+            panic!("map data is empty");
+        }
 
-        for (i,element) in row {
-            //&element[0..(5)].to_string().chars().enumerate().for_each(|(j,nest)| map_tmp[j][i] = nest as i32 - 48);
-            element.chars().enumerate().for_each(|(j,nest)| {
-                if j < wid  { map_tmp[j][i] = nest as i32 - 48; } 
-            });
+        let w = mirror_map_data[0].len();
+        // check each width is w.
+        if mirror_map_data.iter().any(|v| v.len() != w) {
+            panic!("map data is not valid");
+        }
+        
+        // now, map_data's usage is "mirror_map_data[y][x]". and transform to "map_data[x][y]"
+        let mut map_data = vec![vec![0; h]; w];
+        for x in 0..w {
+            for y in 0..h {
+                map_data[x][y] = mirror_map_data[y][x];
+            }
+        }
+    
+        println!("Map created. details, {},{} ", w, h);
+
+        let mut uniques = HashMap::new();
+        for x in 0..w {
+            for y in 0..h {
+                for e in &UNIQUE_ELEMENTS {
+                    if map_data[x][y] == *e {
+                        uniques.insert(*e, QuanCoord{x: x as i32, y: (h - y - 1) as i32});
+                    }
+                }
+            }
         }
 
         Self {
-            width: wid - 1,
-            height: hei - 1, 
-            field: map_tmp,
+            width: w,
+            height: h, 
+            field: map_data,
+            unique_points: uniques,
         }
     }
+
+    fn is_map_chip(v: i32) -> bool {
+        0 <= v && v <= 10
+    }
+
     pub fn build_by_filename(file_name: String) -> Self {
         let result = fs::read_to_string(&file_name);
         let map_data: String;
@@ -170,6 +196,43 @@ impl MapInfo {
         }
         ret
     }
+    pub fn get_can_move_on(&self, now_pos: QuanCoord) -> Vec<QuanCoord> {
+        let mut ret = vec![];
+        for diff in &[-1, 1] {
+            let checking_point = now_pos.plus_element_x(*diff).torus_form(self);
+            if self.access_by_coord_game_based_system(checking_point) != 1 {
+                ret.push(checking_point);
+            }
+            let checking_point = now_pos.plus_element_y(*diff).torus_form(self);
+            if self.access_by_coord_game_based_system(checking_point) != 1 {
+                ret.push(checking_point);
+            }
+        }
+        ret
+    }
+    pub fn access_by_coord_game_based_system_mutref(&mut self, mut coord: QuanCoord) -> &mut i32 {
+        // coord is game based system. so we must convert to index system
+        coord = coord.torus_form(self); // convert to torus form
+        coord.y = self.height as i32 - coord.y - 1;  // convert to index based system
+        &mut self.field[coord.x as usize][coord.y as usize]
+    }
+    pub fn access_by_coord_game_based_system(&self, mut coord: QuanCoord) -> i32 {
+        coord = coord.torus_form(self);
+        coord.y = self.height as i32 - coord.y - 1;
+        println!("Accessing {}", coord);
+        self.field[coord.x as usize][coord.y as usize]
+    }
+    pub fn access_by_coord_index_based_converted_system_mutref(&mut self, x: i32, y: i32) -> &mut i32 {
+        let x = (x + self.width as i32) % self.width as i32;
+        let y = (y + self.height as i32) % self.height as i32;
+        &mut self.field[x as usize][y as usize]
+    }
+    pub fn access_by_coord_index_based_converted_system(&self, x: i32, y: i32) -> i32 {
+        let x = (x + self.width as i32) % self.width as i32;
+        let y = (y + self.height as i32) % self.height as i32;
+        self.field[x as usize][y as usize]
+    }
+
 }
 impl MapProcAsGame {
     pub fn new(map: MapInfo, player_number: usize) -> Self {
@@ -179,10 +242,10 @@ impl MapProcAsGame {
             players: vec![],
             //pacman: QuanCoord::default(),
             // dont erase.
-            pacman: QuanCoord{ x: 0, y: 10 },
+            pacman: QuanCoord{ x: 25, y: 16 },
             pm_target: 0,
             pm_state: PMState::Normal,
-            pm_prev_place: QuanCoord::default(),
+            pm_prev_place: QuanCoord{ x: 25, y: 15 },
             paced_collection: Arc::new(Mutex::new(vec![])),
         }
     }
@@ -190,21 +253,18 @@ impl MapProcAsGame {
 
 
 impl RawCoord {
-    fn quantize(&self) -> QuanCoord {
+    pub fn quantize(&self) -> QuanCoord {
         QuanCoord {
             x: ((self.x - UNIT_SIZE / 2. + 1.) / UNIT_SIZE) as i32,
             y: ((self.y - UNIT_SIZE / 2. + 1.) / UNIT_SIZE) as i32,
         }
     }
-    fn transform_json(&self) -> String {
-        let mut ret = String::new();
-        ret += "{";
-        ret += &format!(
-            r#""x":"{}","y":"{}","z":"{}""#, 
-            self.x, self.y, self.z
-        );
-        ret += "}";
-        ret
+    pub fn default() -> Self {
+        Self {
+            x: 0.,
+            y: 0.,
+            z: 0.,
+        }
     }
 }
 
@@ -212,7 +272,7 @@ impl QuanCoord {
     pub fn anti_quantize(&self) -> RawCoord {
         RawCoord {
             x: self.x as f32 * UNIT_SIZE,
-            y: self.y as f32 * UNIT_SIZE,
+            y: (self.y as f32 + 1.) * UNIT_SIZE,
             z: 0.,
         }
     }
@@ -227,6 +287,30 @@ impl QuanCoord {
             x: 0,
             y: 0,
         }
+    }
+    pub fn plus_element_x(&self, x: i32) -> Self {
+        Self {
+            x: self.x + x,
+            y: self.y,
+        }
+    }
+    pub fn plus_element_y(&self, y: i32) -> Self {
+        Self {
+            x: self.x,
+            y: self.y + y,
+        }
+    }
+    pub fn torus_form(&self, map_ptr: &MapInfo) -> Self {
+        Self {
+            x: (self.x as i32 + map_ptr.width as i32) % map_ptr.width as i32,
+            y: (self.y as i32 + map_ptr.height as i32) % map_ptr.height as i32,
+        }
+    }
+    pub fn distance_to_element(&self, x: i32, y: i32) -> f64 {
+        (((self.x - x) as f64).powf(2.) + ((self.y - y) as f64).powf(2.)).sqrt()
+    }
+    pub fn distance_to_coord(&self, other: Self) -> f64 {
+        (((self.x - other.x) as f64).powf(2.) + ((self.y - other.y) as f64).powf(2.)).sqrt()
     }
 }
 
@@ -250,5 +334,55 @@ impl PartialEq for QuanCoord {
     }
 }
 
+fn create_map_mock() -> MapInfo {
+    let map_string = "01010\n00000\n31014\n10110\n01110".to_string();
+    // 01010 <- (4, 4)
+    // 00000
+    // 31014
+    // 10110
+    // 01110
+    // ^
+    // (0, 0)
+    MapInfo::build_by_string(map_string)
+}
 
+#[test]
+fn map_mock_valid_test() {
+    let m = create_map_mock();
+    assert_eq!(m.width, 5);
+    assert_eq!(m.height, 5);
+}
 
+#[test]
+fn field_access_test() {
+    let map = create_map_mock();
+    assert_eq!(map.access_by_coord_game_based_system(QuanCoord{x: 0, y: 0}), 0);
+    assert_eq!(map.access_by_coord_game_based_system(QuanCoord{x: 1, y: 1}), 0);
+    assert_eq!(map.access_by_coord_game_based_system(QuanCoord{x: 1, y: 4}), 1);
+    assert_eq!(map.access_by_coord_game_based_system(QuanCoord{x: 3, y: 1}), 1);
+    assert_eq!(map.access_by_coord_game_based_system(QuanCoord{x: 3, y: 1}), 1);
+    assert_eq!(map.access_by_coord_game_based_system(QuanCoord{x: 5, y: 2}), 3);
+    assert_eq!(map.access_by_coord_game_based_system(QuanCoord{x: 6, y: 2}), 1);
+    assert_eq!(map.access_by_coord_game_based_system(QuanCoord{x: 7, y: 2}), 0);
+    assert_eq!(map.access_by_coord_game_based_system(QuanCoord{x: 8, y: 2}), 1);
+}
+
+#[test]
+fn unique_field_element_search_test() {
+    let map = create_map_mock();
+    assert_eq!(*map.unique_points.get(&3).unwrap(), QuanCoord{x: 0, y: 2});
+    assert_eq!(*map.unique_points.get(&4).unwrap(), QuanCoord{x: 4, y: 2});
+}
+
+#[test]
+fn map_file_import_test() {
+    let map = MapInfo::build_by_filename("C:\\Users\\Rock0x3FA\\OtobokeServer\\maps\\default_map".to_string());
+    println!("({}, {})", map.width, map.height);
+    //assert_eq!(0, 1);
+}
+
+#[test]
+fn search_movable_point_test() {
+    let map = create_map_mock();
+    assert_eq!(map.get_can_move_on(QuanCoord{x: 2, y: 2}), QuanCoord{x: 2, y: 3});
+}
