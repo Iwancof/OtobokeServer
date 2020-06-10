@@ -13,19 +13,21 @@ impl MapProcAsGame { // for AI
     // Easy AI
     pub fn move_pacman(&mut self) {
         let movable_next_points = self.map.get_can_move_on(self.pacman);
-        for e in &movable_next_points {
-            println!("able to {}", e);
-        }
         if !self.pm_inferpoints.exist_in(self.pacman) {
             // not on a infer point.
             let next = self.routed_next_point(movable_next_points);
             self.move_to(next);
             return;
         }
+
+        for e in &movable_next_points {
+            println!("able {}", *e);
+        }
+
         // TODO: except before_change_pos.
         let result: Vec<(QuanCoord, f64)>= movable_next_points.iter().
             map(|x| (*x, self.evaluate_at(*x))).collect();
-            // Conver to tuple(coord, score).
+            // Convert to tuple(coord, score).
         let (mut max_value, mut max_index) = (-10000., 0);
         for (i, e) in result.iter().enumerate() {
             if max_value < e.1 {
@@ -34,18 +36,21 @@ impl MapProcAsGame { // for AI
             }
         }
         println!("result is {:?}", result[max_index]);
-        self.move_to(result[max_index].0);
+        self.move_to(result[max_index].0).expect("move to wall");
     }
-    fn move_to(&mut self, coord: QuanCoord) {
-        self.pm_prev_place = self.pacman;
+    pub fn move_to(&mut self, coord: QuanCoord) -> Result<QuanCoord, QuanCoord>{
+        let mut prev_place_tmp = self.pacman; // if not error occured. this will be pm_prev_place
         self.pacman = match self.map.access_by_coord_game_based_system(coord) {
             1 => {
-                panic!("move to wall");
+                // move to wall.
+                return Err(coord);
             },
             3 => {
+                prev_place_tmp = coord;
                 *self.map.unique_points.get(&4).unwrap()
             },
             4 => {
+                prev_place_tmp = coord;
                 *self.map.unique_points.get(&3).unwrap()
             },
             5 | 6 => {
@@ -56,21 +61,28 @@ impl MapProcAsGame { // for AI
             _ => {
                 coord
             },
-        }
+        };
+        self.pm_prev_place = prev_place_tmp;
+        Ok(self.pacman)
     }
-    fn routed_next_point(&mut self, movable_points: Vec<QuanCoord>) -> QuanCoord {
+    pub fn routed_next_point(&self, movable_points: Vec<QuanCoord>) -> QuanCoord {
         let next_point: Vec<&QuanCoord> = movable_points.iter().filter(|x| **x != self.pm_prev_place).collect();
-        //assert_eq!(next_point.len(), 1);
+        if next_point.len() != 1 {
+            panic!("'MapProcAsGame::routed_next_point' must be called in non infer point");
+        }
         
-        *next_point[0]
+        **next_point.first().unwrap()
         
     }
     pub fn evaluate_at(&mut self, pos: QuanCoord) -> f64 {
         let mut attractive_score: f64 = 0.;
         for y in 0..self.map.height {
             for x in 0..self.map.width {
+                if !((pos.x - x as i32).abs() < 10 && (pos.y - y as i32).abs() < 10) {
+                    continue;
+                }
                 let dist = pos.distance_to_element(x as i32, y as i32);
-                attractive_score += match self.map.field[x][y] {
+                attractive_score += match self.map.access_by_coord_game_based_system(QuanCoord{x: x as i32, y: y as i32}) {
                     // calc map bias
                     0 => 0., // no data
                     1 => 0., // wall
@@ -85,14 +97,17 @@ impl MapProcAsGame { // for AI
                 } * Self::map_element_bias_with_dist(dist);
             }
         }
+        let mut pl_score = 0.;
         for p in &self.players {
             let dist = pos.distance_to_coord(p.coord);
-            attractive_score += 1. * Self::player_pos_bias_with_dist(dist);
+            pl_score += 1. * Self::player_pos_bias_with_dist(dist);
             // '1' is players power.
             // if the player is strong,
             // escaping from the player is 
             // high priority.
         }
+        println!("{} bait: {}, player: {}", pos, attractive_score, pl_score);
+        attractive_score += pl_score;
         println!("evalued at {:?}, score is {}", pos, attractive_score);
         attractive_score
     }
@@ -101,7 +116,7 @@ impl MapProcAsGame { // for AI
         (-dist).exp() * 1.0
     }
     fn player_pos_bias_with_dist(dist: f64) -> f64 {
-        -100.0 / (dist + 0.1)
+        -100. / (dist.powf(4.))
     }
 }
 

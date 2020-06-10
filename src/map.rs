@@ -33,7 +33,7 @@ pub struct MapProcAsGame {
     pub paced_collection: Arc<Mutex<Vec<QuanCoord>>>,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct GameClient {
     pub coord: QuanCoord,
     pub raw_coord: RawCoord,
@@ -45,13 +45,13 @@ pub enum PMState {
 }
 
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct QuanCoord {
     pub x: i32,
     pub y: i32,
 }
 
-#[derive(Copy, Clone, Serialize)]
+#[derive(Copy, Clone, Debug, Serialize, PartialEq)]
 pub struct RawCoord {
     // for use communicate with clients(Unity)
     pub x: f32,
@@ -219,7 +219,6 @@ impl MapInfo {
     pub fn access_by_coord_game_based_system(&self, mut coord: QuanCoord) -> i32 {
         coord = coord.torus_form(self);
         coord.y = self.height as i32 - coord.y - 1;
-        println!("Accessing {}", coord);
         self.field[coord.x as usize][coord.y as usize]
     }
     pub fn access_by_coord_index_based_converted_system_mutref(&mut self, x: i32, y: i32) -> &mut i32 {
@@ -242,10 +241,10 @@ impl MapProcAsGame {
             players: vec![],
             //pacman: QuanCoord::default(),
             // dont erase.
-            pacman: QuanCoord{ x: 25, y: 16 },
+            pacman: QuanCoord{ x: 24, y: 16 },
             pm_target: 0,
             pm_state: PMState::Normal,
-            pm_prev_place: QuanCoord{ x: 25, y: 15 },
+            pm_prev_place: QuanCoord{ x: 25, y: 16 },
             paced_collection: Arc::new(Mutex::new(vec![])),
         }
     }
@@ -326,11 +325,6 @@ impl Sub for QuanCoord {
 impl fmt::Display for QuanCoord {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "({}, {})", self.x, self.y)
-    }
-}
-impl PartialEq for QuanCoord {
-    fn eq(&self, other: &Self) -> bool {
-        self.x == other.x && self.y == other.y
     }
 }
 
@@ -423,3 +417,90 @@ fn vec_group_eq<T: PartialEq>(v: &Vec<T>, w: &Vec<T>) -> bool {
     }
     !v.iter().any(|e| !w.iter().any(|x| *x == *e))
 }
+
+fn create_map_proc_as_game_mock() -> MapProcAsGame {
+    MapProcAsGame {
+        map: create_map_mock(), 
+        players: vec![],
+        pacman: QuanCoord::default(),
+        pm_target: 0,
+        pm_inferpoints: create_map_mock().get_inferpoints(),
+        pm_state: PMState::Normal,
+        pm_prev_place: QuanCoord::default(),
+        paced_collection: Arc::new(Mutex::new(vec![])),
+    }
+}
+// 01010 <- (4, 4)
+// 00000
+// 31014
+// 10110
+// 01110
+// ^
+// (0, 0)
+
+#[test]
+fn routed_next_point_test() {
+    let mut mock = create_map_proc_as_game_mock();
+    mock.pacman = QuanCoord{x: 1, y: 3};
+    mock.pm_prev_place = QuanCoord{x: 0, y: 3};
+    assert_eq!(mock.routed_next_point(mock.map.get_can_move_on(mock.pacman)), QuanCoord{x: 2, y: 3});
+
+    mock.pacman = QuanCoord{x: 4, y: 1};
+    mock.pm_prev_place = QuanCoord{x: 4, y: 2};
+    assert_eq!(mock.routed_next_point(mock.map.get_can_move_on(mock.pacman)), QuanCoord{x: 4, y: 0});
+}
+
+#[test]
+fn move_to_non_teleport_point_test() {
+    let mut mock = create_map_proc_as_game_mock();
+    mock.pacman = QuanCoord{x: 2, y: 2};
+    mock.move_to(QuanCoord{x: 2, y: 3}).unwrap();
+    assert_eq!(mock.pacman, QuanCoord{x: 2, y: 3});
+    assert_eq!(mock.pm_prev_place, QuanCoord{x: 2, y: 2});
+
+    mock.pacman = QuanCoord{x: 2, y: 2};
+    mock.move_to(QuanCoord{x: 2, y: 3}).unwrap();
+    assert_eq!(mock.pacman, QuanCoord{x: 2, y: 3});
+    assert_eq!(mock.pm_prev_place, QuanCoord{x: 2, y: 2});
+
+    mock.pacman = QuanCoord{x: 1, y: 1};
+    mock.pm_prev_place = QuanCoord{x: -1, y: -1};
+    let result = mock.move_to(QuanCoord{x: 1, y: 2}); // (1, 2) is wall. so expected return is Err( (1, 2)).
+    assert_eq!(result, Err(QuanCoord{x: 1, y: 2}));
+    assert_eq!(mock.pacman, QuanCoord{x: 1, y: 1}); 
+    assert_eq!(mock.pm_prev_place, QuanCoord{x: -1, y: -1}); // and. not change.
+}
+
+#[test]
+fn move_to_teleport_point_test() {
+    let mut mock = create_map_proc_as_game_mock();
+    mock.pacman = QuanCoord{x: 0, y: 1};
+    mock.move_to(QuanCoord{x: 0, y: 2}).unwrap(); // go to '3' teleport point
+    assert_eq!(mock.pacman, QuanCoord{x: 4, y: 2});
+    assert_eq!(mock.pm_prev_place, QuanCoord{x: 0, y: 2});
+
+    mock.pacman = QuanCoord{x: 4, y: 1};
+    mock.move_to(QuanCoord{x: 4, y: 2}).unwrap(); // go to '3' teleport point
+    assert_eq!(mock.pacman, QuanCoord{x: 0, y: 2});
+    assert_eq!(mock.pm_prev_place, QuanCoord{x: 4, y: 2});
+}
+
+// 01010 <- (4, 4)
+// 00000
+// 31014
+// 10110
+// 01110
+// ^
+// (0, 0)
+
+
+/*
+    pub map: MapInfo,
+    pub players: Vec<GameClient>, 
+    pub pacman: QuanCoord,
+    pub pm_target: usize,
+    pub pm_inferpoints: Vec<QuanCoord>,
+    pub pm_state: PMState,
+    pub pm_prev_place: QuanCoord,
+    pub paced_collection: Arc<Mutex<Vec<QuanCoord>>>,
+*/

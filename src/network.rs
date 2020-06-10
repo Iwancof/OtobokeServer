@@ -133,7 +133,6 @@ pub fn start_reading_coordinate(stream: &Vec<Arc<Mutex<BufStream>>>, data_buffer
                     Ok(mut stream) => {
                         let mut read_data = String::new();
                         stream.rd.read_line(&mut read_data).unwrap();
-                        println!("got data from client {}", i);
                         *(data_buffer[i].lock().unwrap()) = read_data.clone();
                     },
                     Err(_) => {
