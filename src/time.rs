@@ -1,4 +1,4 @@
-#![deny(unused)]
+#![allow(unused)]
 #![allow(dead_code)]
 
 use std::{
@@ -10,6 +10,10 @@ use std::{
     sync::{
         Arc,
         Mutex,
+        mpsc::{
+            channel,
+            Sender,
+        }
     },
 };
 
@@ -95,4 +99,65 @@ pub fn subscribe_test() {
     timer.start();
     thread::sleep(Duration::from_millis(100));
     assert_eq!(*return_value.lock().unwrap().deref(),123);
+}
+
+
+
+pub fn time_task_reservation(task: impl(Fn() -> ()) + Send + 'static, span: Duration) -> Sender<Message> {
+    let (s, r) = channel();
+
+    thread::spawn(move || {
+        match r.recv_timeout(span) {
+            Ok(msg) => {
+                match msg  {
+                    Message::Stop => {
+                        return; // stop this thread.
+                    }
+                }
+            },
+            Err(_) => {
+                // there is no stop message. so we can do task.
+                task();
+            }
+        }
+    });
+    s
+}
+
+pub enum Message {
+    Stop,
+}
+
+#[test]
+fn time_task_reservation_cancel_test() {
+    let atomic_value = Arc::new(Mutex::new(0));
+    let arc_clone = atomic_value.clone(); 
+    let sender = time_task_reservation(move || {
+        *arc_clone.lock().unwrap() = 1;
+    }, Duration::from_millis(100));
+
+    thread::sleep(Duration::from_millis(10));
+
+    sender.send(Message::Stop);
+
+    thread::sleep(Duration::from_millis(200));
+
+    assert_eq!(0, *atomic_value.lock().unwrap());
+}
+
+#[test]
+fn time_task_reservation_non_cancel_test() {
+    let atomic_value = Arc::new(Mutex::new(0));
+    let arc_clone = atomic_value.clone(); 
+    let sender = time_task_reservation(move || {
+        *arc_clone.lock().unwrap() = 1;
+    }, Duration::from_millis(100));
+
+    thread::sleep(Duration::from_millis(200));
+
+    sender.send(Message::Stop);
+
+    thread::sleep(Duration::from_millis(200));
+
+    assert_eq!(1, *atomic_value.lock().unwrap());
 }

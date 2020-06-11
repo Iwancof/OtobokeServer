@@ -2,7 +2,14 @@
 
 use std::ops::Sub;
 use std::fs;
-use std::sync::{Arc,Mutex};
+use std::sync::{
+    Arc, 
+    Mutex, 
+    atomic::AtomicBool,
+    mpsc::{
+        Sender,
+    }
+};
 use std::fmt;
 use std::collections::HashMap;
 
@@ -10,10 +17,12 @@ use super::{
     serde_derive,
     serde,
     serde_json,
+    time,
 };
 
-pub static UNIT_SIZE: f32 = 1.05;
-pub static UNIQUE_ELEMENTS: [i32; 2] = [3, 4];
+pub const UNIT_SIZE: f32 = 1.05;
+pub const UNIQUE_ELEMENTS: [i32; 2] = [3, 4];
+pub const PACMAN_POWERED_TIME: f64 = 8.0; // 8 sec
 
 pub struct MapInfo {
     pub width: usize,
@@ -28,7 +37,7 @@ pub struct MapProcAsGame {
     pub pacman: QuanCoord,
     pub pm_target: usize,
     pub pm_inferpoints: Vec<QuanCoord>,
-    pub pm_state: PMState,
+    pub pm_state: Arc<Mutex<PMState>>,
     pub pm_prev_place: QuanCoord,
     pub paced_collection: Arc<Mutex<Vec<QuanCoord>>>,
 }
@@ -39,9 +48,10 @@ pub struct GameClient {
     pub raw_coord: RawCoord,
 }
 
+#[derive(Clone)]
 pub enum PMState {
     Normal,
-    Powered,
+    Powered(Sender<time::Message>), // this sender is to stop thread. 
 }
 
 
@@ -243,7 +253,7 @@ impl MapProcAsGame {
             // dont erase.
             pacman: QuanCoord{ x: 24, y: 16 },
             pm_target: 0,
-            pm_state: PMState::Normal,
+            pm_state: Arc::new(Mutex::new(PMState::Normal)),
             pm_prev_place: QuanCoord{ x: 25, y: 16 },
             paced_collection: Arc::new(Mutex::new(vec![])),
         }
@@ -425,7 +435,7 @@ fn create_map_proc_as_game_mock() -> MapProcAsGame {
         pacman: QuanCoord::default(),
         pm_target: 0,
         pm_inferpoints: create_map_mock().get_inferpoints(),
-        pm_state: PMState::Normal,
+        pm_state: Arc::new(Mutex::new(PMState::Normal)),
         pm_prev_place: QuanCoord::default(),
         paced_collection: Arc::new(Mutex::new(vec![])),
     }

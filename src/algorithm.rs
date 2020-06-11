@@ -3,11 +3,22 @@
 use std::fs;
 use std::fmt;
 use super::map::{
+    PACMAN_POWERED_TIME,
     MapProcAsGame,
     QuanCoord,
+    PMState,
+};
+use super::{
+    time::{
+        time_task_reservation,
+        Message,
+    },
 };
 use std::ops::Sub;
 use std::cmp::Ord;
+use std::time::{
+    Duration,
+};
 
 impl MapProcAsGame { // for AI
     // Easy AI
@@ -53,9 +64,32 @@ impl MapProcAsGame { // for AI
                 prev_place_tmp = coord;
                 *self.map.unique_points.get(&3).unwrap()
             },
-            5 | 6 => {
+            5 => { // normal cookie
                 self.paced_collection.lock().unwrap().push(coord);
                 *self.map.access_by_coord_game_based_system_mutref(coord) = 0; // pac.
+                coord
+            },
+            6 => { // power cookie
+                self.paced_collection.lock().unwrap().push(coord);
+                *self.map.access_by_coord_game_based_system_mutref(coord) = 0; // pac.
+           
+                let state_ptr = self.pm_state.lock().unwrap();
+                match self.pm_state.lock().unwrap().clone() {
+                    PMState::Normal => { /* nothing */ },
+                    PMState::Powered(sender) => {
+                        // if pacman had already powered.
+                        sender.send(Message::Stop);
+                    }
+                }
+
+                // make time duration
+                let d = Duration::from_secs_f64(PACMAN_POWERED_TIME);
+                let state_ptr_clone = self.pm_state.clone();
+
+                time_task_reservation(move || {
+                    *state_ptr_clone.lock().unwrap() = PMState::Normal;
+                }, d);
+                
                 coord
             },
             _ => {
