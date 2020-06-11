@@ -240,8 +240,11 @@ impl BufStream {
     }
 }
 
+/*
 #[allow(unused)]
 pub fn print_typename<T>(_: T) {
     println!("type = {}", std::any::type_name::<T>());
 }
+*/
+
 
