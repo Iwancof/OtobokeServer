@@ -58,7 +58,7 @@ impl GameController {
 
     pub fn wait_for_players(&mut self) {
         //let address = "2400:4051:99c2:58f0:11a4:53a7:248:a471:5522";
-        let address = "localhost:5522";
+        let address = "192.168.1.7:5522";
         let listener = net::TcpListener::bind(address).unwrap(); //Create Listener
         let mut count = 0;
 
@@ -88,8 +88,7 @@ impl GameController {
             r#"{"value":""#.to_string() + &(self.player_limit.to_string()) + r#""}|"#);
         println!("map disributed");
     }
-   
-    pub fn start_game(&mut self) {
+    pub fn game_initialize(&mut self) {
         self.announce_wrap("StartGame|".to_string());
 
         let clone_clients_for_announce_pac_coordinate = 
@@ -132,9 +131,10 @@ impl GameController {
             }
             clone_game_for_announce_bait_info.lock().unwrap().clear_paced_collection();
         }),200);
+    }
 
-        self.distribute_map();
-
+    pub fn wait_and_prepare_commication(&mut self) {
+        // wait client effect
         let buffer_streams: Vec<Arc<Mutex<BufStream>>> // USAGE: access by index and mutex proc
             = self.comn_prov.lock().unwrap().clients.iter().map(|c| // each clients
                 match c.lock() {
@@ -150,11 +150,8 @@ impl GameController {
                     }
                 }
                 ).collect();
-       
         
         let client_count = self.player_limit;
-
-        // wait client effect
         let mut receivers = vec![];
         for i in 0..client_count {
             let cloned : Arc<Mutex<BufStream>> = buffer_streams[i].clone();
@@ -178,17 +175,20 @@ impl GameController {
             }
         }
 
-        println!("GameReady!!");
-        self.announce_wrap("GameReady|".to_string());
-
         start_reading_coordinate(
             &buffer_streams, 
             &mut self.comn_prov.lock().unwrap().network_buffer.clone()
         );
+    }
+
+    pub fn start_game(&mut self) {
+        println!("GameReady!!");
+        self.announce_wrap("GameReady|".to_string());
 
         let cloned_network_buffer = self.comn_prov.lock().unwrap().network_buffer.clone();
         let cloned_game = self.game.clone();
         let cloned_prov = self.comn_prov.clone();
+        let client_count = self.player_limit;
 
         self.timer.subscribe(Box::new(move || {
             for i in 0..client_count {

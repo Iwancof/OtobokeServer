@@ -32,7 +32,7 @@ impl MapProcAsGame { // for AI
         }
 
         for e in &movable_next_points {
-            println!("able {}", *e);
+            //println!("able {}", *e);
         }
 
         // TODO: except before_change_pos.
@@ -46,7 +46,7 @@ impl MapProcAsGame { // for AI
                 max_index = i;
             }
         }
-        println!("result is {:?}", result[max_index]);
+        //println!("result is {:?}", result[max_index]);
         self.move_to(result[max_index].0).expect("move to wall");
     }
     pub fn move_to(&mut self, coord: QuanCoord) -> Result<QuanCoord, QuanCoord>{
@@ -73,7 +73,6 @@ impl MapProcAsGame { // for AI
                 self.paced_collection.lock().unwrap().push(coord);
                 *self.map.access_by_coord_game_based_system_mutref(coord) = 0; // pac.
            
-                let state_ptr = self.pm_state.lock().unwrap();
                 match self.pm_state.lock().unwrap().clone() {
                     PMState::Normal => { /* nothing */ },
                     PMState::Powered(sender) => {
@@ -85,10 +84,15 @@ impl MapProcAsGame { // for AI
                 // make time duration
                 let d = Duration::from_secs_f64(PACMAN_POWERED_TIME);
                 let state_ptr_clone = self.pm_state.clone();
+                
+                println!("POWERED!!");
 
-                time_task_reservation(move || {
+                let sender = time_task_reservation(move || {
                     *state_ptr_clone.lock().unwrap() = PMState::Normal;
+                    println!("Normalize");
                 }, d);
+
+                *self.pm_state.lock().unwrap() = PMState::Powered(sender);
                 
                 coord
             },
@@ -140,9 +144,9 @@ impl MapProcAsGame { // for AI
             // escaping from the player is 
             // high priority.
         }
-        println!("{} bait: {}, player: {}", pos, attractive_score, pl_score);
+        //println!("{} bait: {}, player: {}", pos, attractive_score, pl_score);
         attractive_score += pl_score;
-        println!("evalued at {:?}, score is {}", pos, attractive_score);
+        //println!("evalued at {:?}, score is {}", pos, attractive_score);
         attractive_score
     }
     fn map_element_bias_with_dist(dist: f64) -> f64 {

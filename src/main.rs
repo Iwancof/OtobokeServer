@@ -46,11 +46,17 @@ fn open_server(game: game::Game) {
     g.wait_for_players();
     //g.initialize_players(); //distribute map and etc...
     //thread::sleep(Duration::from_millis(3000));
-
+    
+    g.game_initialize();
+    g.distribute_map();
+    g.wait_and_prepare_commication();
     g.start_game();
+
+    println!("Game End");
 }
 
 fn print_on(msg: String, wos: usize, hos: usize) {
     print!("\x1b[{};{}H{}", hos, wos, msg);
 }
+
 

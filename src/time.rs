@@ -111,6 +111,7 @@ pub fn time_task_reservation(task: impl(Fn() -> ()) + Send + 'static, span: Dura
             Ok(msg) => {
                 match msg  {
                     Message::Stop => {
+                        //println!("Cancell");
                         return; // stop this thread.
                     }
                 }
