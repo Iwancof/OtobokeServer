@@ -19,7 +19,35 @@ use std::{
 
 // for test use
 #[allow(unused)]
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, Add, Sub};
+use std::cmp::{PartialOrd};
+
+trait RxTimerTrait {
+    fn subscribe(&mut self, task: Box<dyn Fn() -> () + Send>, frec: u128) -> Result<usize, String>;
+    fn update(&mut self);
+}
+
+pub struct ProgressAndGoal<T: PartialOrd + Add + Sub + Copy> {
+    pub progress: T,
+    pub goal: T,
+}
+impl<T: PartialOrd + Add<Output = T> + Sub<Output = T> + Copy> ProgressAndGoal<T> {
+    pub fn add(&mut self, pg: T) -> bool {
+        self.progress = self.progress + pg;
+        if self.goal < self.progress {
+            self.progress = self.progress - pg;
+            return true;
+        }
+        false
+    }
+}
+
+pub struct RawRxTimer {
+    latest: Instant, // latest time.
+    task_time_totals: Vec<ProgressAndGoal<u128>>,
+    tasks: Vec<Box<dyn Fn() -> () + Send>>,
+}
+
 
 pub struct LoopTimerUnArc {
     latest: Instant,
@@ -162,3 +190,5 @@ fn time_task_reservation_non_cancel_test() {
 
     assert_eq!(1, *atomic_value.lock().unwrap());
 }
+
+

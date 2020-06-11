@@ -42,7 +42,7 @@ pub struct MapProcAsGame {
     pub paced_collection: Arc<Mutex<Vec<QuanCoord>>>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 pub struct GameClient {
     pub coord: QuanCoord,
     pub raw_coord: RawCoord,
@@ -55,13 +55,13 @@ pub enum PMState {
 }
 
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 pub struct QuanCoord {
     pub x: i32,
     pub y: i32,
 }
 
-#[derive(Copy, Clone, Debug, Serialize, PartialEq)]
+#[derive(Copy, Clone, Debug, Serialize, PartialEq, Default)]
 pub struct RawCoord {
     // for use communicate with clients(Unity)
     pub x: f32,
@@ -69,14 +69,6 @@ pub struct RawCoord {
     pub z: f32, // clients(Unity) send z data.
 }
 
-impl GameClient {
-    pub fn default() -> Self {
-        Self {
-            coord: QuanCoord::default(),
-            raw_coord: RawCoord::default(),
-        }
-    }
-}
 
 impl MapInfo {
     pub fn build_by_string(map_data: String) -> Self {
@@ -241,7 +233,6 @@ impl MapInfo {
         let y = (y + self.height as i32) % self.height as i32;
         self.field[x as usize][y as usize]
     }
-
 }
 impl MapProcAsGame {
     pub fn new(map: MapInfo, player_number: usize) -> Self {
@@ -268,13 +259,6 @@ impl RawCoord {
             y: ((self.y - UNIT_SIZE / 2. + 1.) / UNIT_SIZE) as i32,
         }
     }
-    pub fn default() -> Self {
-        Self {
-            x: 0.,
-            y: 0.,
-            z: 0.,
-        }
-    }
 }
 
 impl QuanCoord {
@@ -290,12 +274,6 @@ impl QuanCoord {
             (a.x as f32 - b.x as f32).powf(2.) +
             (a.y as f32 - b.y as f32).powf(2.)
         ).sqrt()
-    }
-    pub fn default() -> Self {
-        Self {
-            x: 0,
-            y: 0,
-        }
     }
     pub fn plus_element_x(&self, x: i32) -> Self {
         Self {
