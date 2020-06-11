@@ -113,6 +113,7 @@ impl MapProcAsGame { // for AI
         
     }
     pub fn evaluate_at(&mut self, pos: QuanCoord) -> f64 {
+        //see, "パックマンの動き" om https://hackmd.io/VP2HVfw-Rc2COcPSKJQymQ?both 
         let mut attractive_score: f64 = 0.;
         for y in 0..self.map.height {
             for x in 0..self.map.width {
