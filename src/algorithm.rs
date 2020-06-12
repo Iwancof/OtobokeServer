@@ -20,6 +20,8 @@ use std::time::{
     Duration,
 };
 
+use crate::network::CommunicationProviderTrait;
+
 impl MapProcAsGame { // for AI
     // Easy AI
     pub fn move_pacman(&mut self) {
@@ -65,12 +67,14 @@ impl MapProcAsGame { // for AI
                 *self.map.unique_points.get(&3).unwrap()
             },
             5 => { // normal cookie
-                self.paced_collection.lock().unwrap().push(coord);
+                //self.paced_collection.lock().unwrap().push(coord);
+                self.pac_cookie_at(coord);
                 *self.map.access_by_coord_game_based_system_mutref(coord) = 0; // pac.
                 coord
             },
             6 => { // power cookie
-                self.paced_collection.lock().unwrap().push(coord);
+                //self.paced_collection.lock().unwrap().push(coord);
+                self.pac_cookie_at(coord);
                 *self.map.access_by_coord_game_based_system_mutref(coord) = 0; // pac.
            
                 match self.pm_state.lock().unwrap().clone() {
@@ -102,6 +106,16 @@ impl MapProcAsGame { // for AI
         };
         self.pm_prev_place = prev_place_tmp;
         Ok(self.pacman)
+    }
+    fn pac_cookie_at(&mut self, coord: QuanCoord) {
+        match self.map.access_by_coord_game_based_system(coord) {
+            5 | 6 => {
+                self.comn_prov.as_ref().unwrap().send_data_with_tag_and_data("PACCOL", "Coordinate", &coord);
+            },
+            _ => {
+                panic!("pac cookie got invalid coordinate");
+            }
+        };
     }
     pub fn routed_next_point(&self, movable_points: Vec<QuanCoord>) -> QuanCoord {
         let next_point: Vec<&QuanCoord> = movable_points.iter().filter(|x| **x != self.pm_prev_place).collect();

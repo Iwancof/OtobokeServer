@@ -13,6 +13,8 @@ use std::sync::{
 use std::fmt;
 use std::collections::HashMap;
 
+use crate::network::CommunicationProvider;
+
 use super::{
     serde_derive,
     serde,
@@ -40,6 +42,7 @@ pub struct MapProcAsGame {
     pub pm_state: Arc<Mutex<PMState>>,
     pub pm_prev_place: QuanCoord,
     pub paced_collection: Arc<Mutex<Vec<QuanCoord>>>,
+    pub comn_prov: Option<Arc<Mutex<CommunicationProvider>>>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
@@ -55,7 +58,7 @@ pub enum PMState {
 }
 
 
-#[derive(Copy, Clone, Debug, PartialEq, Default)]
+#[derive(Copy, Clone, Debug, Serialize, PartialEq, Default)]
 pub struct QuanCoord {
     pub x: i32,
     pub y: i32,
@@ -247,6 +250,7 @@ impl MapProcAsGame {
             pm_state: Arc::new(Mutex::new(PMState::Normal)),
             pm_prev_place: QuanCoord{ x: 25, y: 16 },
             paced_collection: Arc::new(Mutex::new(vec![])),
+            comn_prov: None,
         }
     }
 }
@@ -416,6 +420,7 @@ fn create_map_proc_as_game_mock() -> MapProcAsGame {
         pm_state: Arc::new(Mutex::new(PMState::Normal)),
         pm_prev_place: QuanCoord::default(),
         paced_collection: Arc::new(Mutex::new(vec![])),
+        comn_prov: None,
     }
 }
 // 01010 <- (4, 4)
