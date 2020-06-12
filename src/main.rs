@@ -18,6 +18,10 @@ extern crate serde_json;
 
 use std::env;
 use map::MapInfo;
+use std::sync::{
+    Arc,
+    Mutex,
+};
 
 fn main() { //For one game
     println!("\x1b[2J");
@@ -29,30 +33,36 @@ fn main() { //For one game
 
     println!("Use default map. {}",map_path);
 
-    let l = 1; // players
+    let player_number = 1;
+
     let mut map = map::MapInfo::build_by_filename(map_path);
-    let mut game = game::Game::new(map, l);
+    // pure map info
 
-    open_server(game);
-}
+    let mut game = game::Game::new(map, player_number);
+    // make instance with map and number.
 
-fn open_server(game: game::Game) {
     let mut g = server::GameController::new(game);
-    g.game.lock().unwrap().game_init_call_once();
-
+    // make server call GameController
+    
     g.show_game_details();
     println!("Game initialized");
 
     g.wait_for_players();
-    //g.initialize_players(); //distribute map and etc...
-    //thread::sleep(Duration::from_millis(3000));
+    // wait players
     
     g.game_initialize();
-    g.distribute_map();
-    g.wait_and_prepare_commication();
-    g.start_game();
 
-    println!("Game End");
+    g.distribute_map();
+    // distribute map to clients.
+    
+    g.wait_and_prepare_communication();
+    // wait effect end and start coordinates.
+
+    g.start_game();
+    // start!
+    
+
+    println!("Game end");
 }
 
 fn print_on(msg: String, wos: usize, hos: usize) {

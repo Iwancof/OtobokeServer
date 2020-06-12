@@ -37,9 +37,6 @@ impl Game {
             game_id: -1,
         }
     }
-    pub fn game_init_call_once(&mut self) {
-
-    }
     pub fn move_pacman_wrap(&mut self) {
         self.map_proc.lock().unwrap().move_pacman();
     }
