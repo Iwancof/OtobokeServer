@@ -34,6 +34,7 @@ use super::{
         GameClient,
     }
 };
+use crate::network::CommunicationProviderTrait;
 
 pub struct GameController {
     pub comn_prov: Arc<Mutex<CommunicationProvider>>,
@@ -79,6 +80,9 @@ impl GameController {
     pub fn register_player(&self) {
         self.game.lock().unwrap().map_proc.lock().unwrap().players.push(GameClient::default());
     }
+    pub fn set_communication_provider_to_map_proc(&self) {
+        self.game.lock().unwrap().map_proc.lock().unwrap().comn_prov = Some(self.comn_prov.clone());
+    }
 
     pub fn distribute_map(&mut self) {
         //let map_data = self.map.lock().unwrap().map_to_string();
@@ -90,6 +94,7 @@ impl GameController {
     }
     pub fn game_initialize(&mut self) {
         self.announce_wrap("StartGame|".to_string());
+        self.set_communication_provider_to_map_proc();
 
         let clone_clients_for_announce_pac_coordinate = 
             self.comn_prov.lock().unwrap().clients.clone();
@@ -116,24 +121,9 @@ impl GameController {
         }),
         200 //Time span
         );
-        self.timer.subscribe(Box::new(move || {
-            let msg = game::paced_vec_to_string(clone_game_for_announce_bait_info.lock().unwrap().get_paced_coordinates_as_raw()).into_bytes();
-            
-            for client_arc in &clone_clients_for_announce_bait_info {
-                match client_arc.lock() {
-                    Ok(mut client) => {
-                        client.write(&msg).expect("Could not send bait info"); //And send to clients. (Can't use announce methot)
-                    },
-                    Err(_) => {
-                        println!("Could not send pacman coordiante for client");
-                    }
-                }
-            }
-            clone_game_for_announce_bait_info.lock().unwrap().clear_paced_collection();
-        }),200);
     }
 
-    pub fn wait_and_prepare_commication(&mut self) {
+    pub fn wait_and_prepare_communication(&mut self) {
         // wait client effect
         let buffer_streams: Vec<Arc<Mutex<BufStream>>> // USAGE: access by index and mutex proc
             = self.comn_prov.lock().unwrap().clients.iter().map(|c| // each clients
@@ -202,7 +192,7 @@ impl GameController {
                 }
             };
             let received_data = cloned_game.lock().unwrap().coordinate_to_json();
-            cloned_prov.lock().unwrap().announce_message(received_data);
+            cloned_prov.send(received_data);
         }), 50);
 
         self.timer.start(); //Start doing tasks

@@ -23,11 +23,66 @@ use super::{
         GameController,
         BufStream,
     },
+    serde::{
+        Serialize,
+    },
+    json::{
+        json_build,
+        json_build_vec,
+    }
 };
+
 
 pub struct CommunicationProvider {
     pub clients: Vec<Arc<Mutex<TcpStream>>>, 
     pub network_buffer : Vec<Arc<Mutex<String>>>,
+}
+
+type ProviderResult = Result<usize, std::io::Error>;
+// usize is send length. error is io error.
+
+// TODO: Result<usize, (usize, std::io::Error)>
+// Error has client_id is better.
+
+pub trait CommunicationProviderTrait {
+    fn send_bytes(&self, msg: &[u8]) -> ProviderResult;
+    fn clients_count(&self) -> usize;
+    fn send(&self, msg: String) -> ProviderResult {
+        let msg_byte = &msg.into_bytes();
+        self.send_bytes(msg_byte)
+    }
+    fn send_data_with_tag_and_data<T: Serialize>(&self, tag: &str, name: &str, obj: &T) -> ProviderResult {
+        self.send(
+            json_build(tag, name, obj) + "|"
+            )
+    }
+    fn send_data_with_tag_and_vec_data<T: Serialize>(&self, tag: &str, name: &str, obj: &Vec<T>) -> ProviderResult {
+        self.send(
+            json_build_vec(tag, name, obj) + "|"
+            )
+    }
+}
+
+impl CommunicationProviderTrait for CommunicationProvider {
+    fn send_bytes(&self, msg: &[u8]) -> ProviderResult {
+        for client_arc in &self.clients { 
+            match client_arc.lock() {
+                Ok(mut client) => {
+                    match client.write(msg) {
+                        Ok(_) => { /* */ },
+                        Err(r) => { return Err(r); }
+                    }
+                },
+                Err(_) => {
+                    println!("Could not send data");
+                }
+            }
+        }
+        Ok(msg.len())
+    }
+    fn clients_count(&self) -> usize {
+        self.clients.len()
+    }
 }
 
 impl CommunicationProvider {
@@ -37,39 +92,20 @@ impl CommunicationProvider {
             network_buffer: vec![],
         }
     }
-    pub fn announce_message(&self, msg: String) {
-        let message_byte = &msg.into_bytes();
-        for client_arc in &self.clients { 
-            match client_arc.lock() {
-                Ok(mut client) => {
-                    client.write(message_byte).unwrap();
-                },
-                Err(_) => {
-                    println!("Could not send data");
-                }
-            }
-        }
+}
+
+impl CommunicationProviderTrait for Arc<Mutex<CommunicationProvider>> {
+    fn send_bytes(&self, msg: &[u8]) -> ProviderResult {
+        self.lock().unwrap().send_bytes(msg)
     }
-    pub fn announce_message_byte(&self, msg: &[u8]) {
-        for client_arc in &self.clients { 
-            match client_arc.lock() {
-                Ok(mut client) => {
-                    client.write(msg).unwrap();
-                },
-                Err(_) => {
-                    println!("Could not send data");
-                }
-            }
-        }
-    }
-    pub fn clients_count(&self) -> usize {
-        self.clients.len()
+    fn clients_count(&self) -> usize {
+        self.lock().unwrap().clients_count()
     }
 }
 
 impl GameController {
-    pub fn announce_wrap(&self, msg: String) {
-        self.comn_prov.lock().unwrap().announce_message(msg);
+    pub fn announce_wrap(&self, msg: String){
+        self.comn_prov.send(msg).expect("Could not send data");
     }
 
     pub fn player_join_initialize(&mut self, stream: net::TcpStream) {
