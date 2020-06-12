@@ -47,7 +47,7 @@ pub fn json_build_vec<T: Serialize>(tag: &str, name: &str, v: &Vec<T>) -> String
 
 #[test]
 fn serialize_test() {
-    use super::map::RawCoord;
+    use super::map::coord::RawCoord;
     let coord = RawCoord{x: 10., y: 20., z: 30.};
     let mut result = json_build("TestTag", "TestName", &coord);
     assert_eq!(result, r#"TestTag;{"TestName":{"x":10.0,"y":20.0,"z":30.0}}"#.to_string());

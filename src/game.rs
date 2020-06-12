@@ -10,9 +10,11 @@ use super::{
     map::{
         MapProcAsGame,
         MapInfo,
-        QuanCoord,
-        RawCoord,
         UNIT_SIZE,
+        coord::{
+            QuanCoord,
+            RawCoord,
+        },
     },
     json::{
         json_build,
@@ -31,7 +33,7 @@ pub struct Game {
 impl Game {
     pub fn new(map: MapInfo, num_of_player: usize) -> Self {
         Self {
-            map_proc: Arc::new(Mutex::new(MapProcAsGame::new(map, num_of_player))),
+            map_proc: Arc::new(Mutex::new(MapProcAsGame::new(map))),
             pm_score: 0,
             number_of_player: num_of_player,
             game_id: -1,

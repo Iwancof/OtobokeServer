@@ -1,4 +1,3 @@
-
 use super::{
     time,
 };
@@ -17,15 +16,21 @@ use std::{
     },
 };
 
-pub mod map;
+pub mod mapinfo_access;
+pub mod mapinfo_utils;
 pub mod coord;
+pub mod map_alg;
+pub mod test;
 
 use coord::{
     QuanCoord,
     RawCoord,
 };
 
-use crate::network::CommunicationProvider;
+use crate::{
+    CommunicationProviderTrait,
+    CommunicationProvider,
+};
 
 pub const UNIT_SIZE: f32 = 1.05;
 pub const UNIQUE_ELEMENTS: [i32; 2] = [3, 4];
@@ -47,6 +52,7 @@ pub struct MapProcAsGame {
     pub pm_state: Arc<Mutex<PMState>>,
     pub pm_prev_place: QuanCoord,
     pub comn_prov: Option<Arc<Mutex<CommunicationProvider>>>,
+    // TODO: fix to use trait.
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Default)]

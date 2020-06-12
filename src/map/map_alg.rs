@@ -2,11 +2,14 @@
 
 use std::fs;
 use std::fmt;
-use super::map::{
+use super::{
     PACMAN_POWERED_TIME,
     MapProcAsGame,
-    QuanCoord,
+    MapInfo,
     PMState,
+    coord::{
+        QuanCoord,
+    },
 };
 use super::{
     time::{
@@ -24,9 +27,24 @@ use std::sync::{
     Mutex,
 };
 
-use crate::network::CommunicationProviderTrait;
+use crate::CommunicationProviderTrait;
 
 impl MapProcAsGame { // for AI
+    pub fn new(map: MapInfo) -> Self {
+        Self {
+            pm_inferpoints: map.get_inferpoints(),
+            map: map,
+            players: vec![],
+            //pacman: QuanCoord::default(),
+            // dont erase.
+            pacman: QuanCoord{ x: 24, y: 16 },
+            pm_target: 0,
+            pm_state: Arc::new(Mutex::new(super::PMState::Normal)),
+            pm_prev_place: QuanCoord{ x: 25, y: 16 },
+            comn_prov: None,
+        }
+    }
+
     // Easy AI
     pub fn move_pacman(&mut self) {
         let movable_next_points = self.map.get_can_move_on(self.pacman);

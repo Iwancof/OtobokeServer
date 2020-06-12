@@ -3,9 +3,7 @@
 
 mod server;
 mod game;
-mod network;
 mod time;
-mod algorithm;
 mod map;
 mod json;
 
@@ -21,6 +19,12 @@ use map::MapInfo;
 use std::sync::{
     Arc,
     Mutex,
+};
+use server::{
+    communication::{
+        CommunicationProviderTrait,
+        CommunicationProvider,
+    },
 };
 
 fn main() { //For one game
@@ -43,24 +47,8 @@ fn main() { //For one game
 
     let mut g = server::GameController::new(game);
     // make server call GameController
-    
-    g.show_game_details();
-    println!("Game initialized");
 
-    g.wait_for_players();
-    // wait players
-    
-    g.game_initialize();
-
-    g.distribute_map();
-    // distribute map to clients.
-    
-    g.wait_and_prepare_communication();
-    // wait effect end and start coordinates.
-
-    g.start_game();
-    // start!
-    
+    g.server_flow_tmp();
 
     println!("Game end");
 }
