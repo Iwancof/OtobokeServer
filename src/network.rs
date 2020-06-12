@@ -61,6 +61,14 @@ pub trait CommunicationProviderTrait {
             json_build_vec(tag, name, obj) + "|"
             )
     }
+    fn send_data_with_tag_and_string(&self, tag: &str, data: String) -> ProviderResult {
+        let mut sd = String::new();
+        sd += tag;
+        sd += ";";
+        sd += &data;
+        sd += "|";
+        self.send(sd)
+    }
 }
 
 impl CommunicationProviderTrait for CommunicationProvider {

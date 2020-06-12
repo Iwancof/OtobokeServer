@@ -19,6 +19,10 @@ use std::cmp::Ord;
 use std::time::{
     Duration,
 };
+use std::sync::{
+    Arc,
+    Mutex,
+};
 
 use crate::network::CommunicationProviderTrait;
 
@@ -67,13 +71,11 @@ impl MapProcAsGame { // for AI
                 *self.map.unique_points.get(&3).unwrap()
             },
             5 => { // normal cookie
-                //self.paced_collection.lock().unwrap().push(coord);
                 self.pac_cookie_at(coord);
                 *self.map.access_by_coord_game_based_system_mutref(coord) = 0; // pac.
                 coord
             },
             6 => { // power cookie
-                //self.paced_collection.lock().unwrap().push(coord);
                 self.pac_cookie_at(coord);
                 *self.map.access_by_coord_game_based_system_mutref(coord) = 0; // pac.
            
@@ -90,9 +92,12 @@ impl MapProcAsGame { // for AI
                 let state_ptr_clone = self.pm_state.clone();
                 
                 println!("POWERED!!");
+                Self::pacman_state_change_notify(self.comn_prov.clone().unwrap(), self.pm_state.clone());
 
+                let cloned_prov = self.comn_prov.clone();
                 let sender = time_task_reservation(move || {
                     *state_ptr_clone.lock().unwrap() = PMState::Normal;
+                    Self::pacman_state_change_notify(cloned_prov.clone().unwrap(), state_ptr_clone.clone());
                     println!("Normalize");
                 }, d);
 
@@ -110,12 +115,15 @@ impl MapProcAsGame { // for AI
     fn pac_cookie_at(&mut self, coord: QuanCoord) {
         match self.map.access_by_coord_game_based_system(coord) {
             5 | 6 => {
-                self.comn_prov.as_ref().unwrap().send_data_with_tag_and_data("PACCOL", "Coordinate", &coord);
+                self.comn_prov.as_ref().unwrap().send_data_with_tag_and_data("PACCOL", "Coordinate", &coord).unwrap();
             },
             _ => {
                 panic!("pac cookie got invalid coordinate");
             }
         };
+    }
+    fn pacman_state_change_notify<T: CommunicationProviderTrait>(prov: T, state: Arc<Mutex<PMState>>) {
+        &prov.send_data_with_tag_and_string("PACSTA", state.lock().unwrap().to_string()).unwrap();
     }
     pub fn routed_next_point(&self, movable_points: Vec<QuanCoord>) -> QuanCoord {
         let next_point: Vec<&QuanCoord> = movable_points.iter().filter(|x| **x != self.pm_prev_place).collect();

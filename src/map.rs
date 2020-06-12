@@ -41,7 +41,6 @@ pub struct MapProcAsGame {
     pub pm_inferpoints: Vec<QuanCoord>,
     pub pm_state: Arc<Mutex<PMState>>,
     pub pm_prev_place: QuanCoord,
-    pub paced_collection: Arc<Mutex<Vec<QuanCoord>>>,
     pub comn_prov: Option<Arc<Mutex<CommunicationProvider>>>,
 }
 
@@ -55,6 +54,15 @@ pub struct GameClient {
 pub enum PMState {
     Normal,
     Powered(Sender<time::Message>), // this sender is to stop thread. 
+}
+impl ToString for PMState {
+    fn to_string(&self) -> String {
+        let mut ret = String::new();
+        match *self {
+            Self::Normal => "Normal".to_string(),
+            Self::Powered(_) => "Powered".to_string(),
+        }
+    }
 }
 
 
@@ -249,7 +257,6 @@ impl MapProcAsGame {
             pm_target: 0,
             pm_state: Arc::new(Mutex::new(PMState::Normal)),
             pm_prev_place: QuanCoord{ x: 25, y: 16 },
-            paced_collection: Arc::new(Mutex::new(vec![])),
             comn_prov: None,
         }
     }
@@ -419,7 +426,6 @@ fn create_map_proc_as_game_mock() -> MapProcAsGame {
         pm_inferpoints: create_map_mock().get_inferpoints(),
         pm_state: Arc::new(Mutex::new(PMState::Normal)),
         pm_prev_place: QuanCoord::default(),
-        paced_collection: Arc::new(Mutex::new(vec![])),
         comn_prov: None,
     }
 }

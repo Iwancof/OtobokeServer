@@ -62,16 +62,6 @@ impl Game {
         //println!("result of 'coordinate_to_json' is {}", ret);
         ret
     }
-    pub fn get_paced_coordinates_as_raw(&self) -> Vec<QuanCoord> {
-        //println!("Get paced coordinates");
-        self.map_proc.lock().unwrap().
-            paced_collection.lock().unwrap().
-                iter().map(|x| *x).collect()
-    }
-    pub fn clear_paced_collection(&mut self) {
-        *self.map_proc.lock().unwrap().paced_collection.lock().unwrap() = vec![];
-    }
-
 }
 
 pub fn paced_vec_to_string(v : Vec<QuanCoord>) -> String {
