@@ -16,7 +16,9 @@ use super::{
     coord::QuanCoord,
 };
 
+/// 純粋なマップ情報
 impl MapInfo {
+    /// 文字列からマップを生成
     pub fn build_by_string(map_data: String) -> Self {
         // first, create Vec<String> split by "\n"
         let sliced_map: Vec<String> = map_data.split('\n').map(|s| s.to_string()).collect();
@@ -75,6 +77,7 @@ impl MapInfo {
         0 <= v && v <= 10
     }
 
+    /// ファイルパスからマップを生成
     pub fn build_by_filename(file_name: String) -> Self {
         let result = fs::read_to_string(&file_name);
         match result {
@@ -86,6 +89,7 @@ impl MapInfo {
             }
         }
     }
+    /// マップを表示
     pub fn show_map(&self) {
         for y in 0..self.height {
             for x in 0..self.width {
@@ -94,6 +98,7 @@ impl MapInfo {
             println!("");
         }
     }
+    /// 交差点を表示
     pub fn get_inferpoints(&self) -> Vec<QuanCoord> {
         let mut ret = vec![];
         for x in 0..self.width as i32 {
@@ -110,6 +115,7 @@ impl MapInfo {
         }
         ret
     }
+    /// now_posに於ける、次に進める場所を返す
     pub fn get_can_move_on(&self, now_pos: QuanCoord) -> Vec<QuanCoord> {
         let mut ret = vec![];
         for diff in &[-1, 1] {

@@ -44,6 +44,7 @@ impl GameController {
     pub(super) fn set_communication_provider_to_map_proc(&self) {
         self.game.lock().unwrap().map_proc.lock().unwrap().comn_prov = Some(self.comn_prov.clone());
     }
+    /// aaa
     pub(super) fn distribute_map(&mut self) {
         //let map_data = self.map.lock().unwrap().map_to_string();
         let map_data = self.game.lock().unwrap().map_proc.lock().unwrap().map.map_to_string() + "|";

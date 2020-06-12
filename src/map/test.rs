@@ -180,13 +180,3 @@ fn move_to_teleport_point_test() {
 // (0, 0)
 
 
-/*
-    pub map: MapInfo,
-    pub players: Vec<GameClient>, 
-    pub pacman: QuanCoord,
-    pub pm_target: usize,
-    pub pm_inferpoints: Vec<QuanCoord>,
-    pub pm_state: PMState,
-    pub pm_prev_place: QuanCoord,
-    pub paced_collection: Arc<Mutex<Vec<QuanCoord>>>,
-*/

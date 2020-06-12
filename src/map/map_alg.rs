@@ -29,7 +29,9 @@ use std::sync::{
 
 use crate::CommunicationProviderTrait;
 
+/// パックマンの動作や、クライアントへの通知を含めたマップ管理構造体
 impl MapProcAsGame { // for AI
+    /// 引数にMapInfoを取り、初期値やフィールドの初期化を行う
     pub fn new(map: MapInfo) -> Self {
         Self {
             pm_inferpoints: map.get_inferpoints(),
@@ -46,6 +48,7 @@ impl MapProcAsGame { // for AI
     }
 
     // Easy AI
+    /// パックマンを一回動かす関数
     pub fn move_pacman(&mut self) {
         let movable_next_points = self.map.get_can_move_on(self.pacman);
         if !self.pm_inferpoints.exist_in(self.pacman) {
@@ -73,6 +76,7 @@ impl MapProcAsGame { // for AI
         //println!("result is {:?}", result[max_index]);
         self.move_to(result[max_index].0).expect("move to wall");
     }
+    /// パックマンを指定の座標まで一回で移動させる。テレポートなども考慮される
     pub fn move_to(&mut self, coord: QuanCoord) -> Result<QuanCoord, QuanCoord>{
         let mut prev_place_tmp = self.pacman; // if not error occured. this will be pm_prev_place
         self.pacman = match self.map.access_by_coord_game_based_system(coord) {
@@ -143,7 +147,7 @@ impl MapProcAsGame { // for AI
     fn pacman_state_change_notify<T: CommunicationProviderTrait>(prov: T, state: Arc<Mutex<PMState>>) {
         &prov.send_data_with_tag_and_string("PACSTA", state.lock().unwrap().to_string()).unwrap();
     }
-    pub fn routed_next_point(&self, movable_points: Vec<QuanCoord>) -> QuanCoord {
+    fn routed_next_point(&self, movable_points: Vec<QuanCoord>) -> QuanCoord {
         let next_point: Vec<&QuanCoord> = movable_points.iter().filter(|x| **x != self.pm_prev_place).collect();
         if next_point.len() != 1 {
             panic!("'MapProcAsGame::routed_next_point' must be called in non infer point");
@@ -152,7 +156,7 @@ impl MapProcAsGame { // for AI
         **next_point.first().unwrap()
         
     }
-    pub fn evaluate_at(&mut self, pos: QuanCoord) -> f64 {
+    fn evaluate_at(&mut self, pos: QuanCoord) -> f64 {
         //see, "パックマンの動き" om https://hackmd.io/VP2HVfw-Rc2COcPSKJQymQ?both 
         let mut attractive_score: f64 = 0.;
         for y in 0..self.map.height {
@@ -198,6 +202,7 @@ impl MapProcAsGame { // for AI
         -100. / (dist.powf(4.))
     }
 }
+
 
 trait ExistVecTrait<T> {
     fn exist_in(&self, e: T) -> bool;
