@@ -155,9 +155,6 @@ impl GameController {
                 collect()
     }
     pub(super) fn start_reading_coordinate(&self) {
-        // let stream_cloned: Vec<Arc<Mutex<BufStream>>> = self.comn_prov.lock().unwrap().clients.clone();
-        // let buffer_cloned: Vec<Arc<Mutex<String>>> = self.comn_prov.lock().unwrap().network_buffer.clone();
-
         let player_count = self.comn_prov.lock().unwrap().clients_count();
 
         // if data received, a mutex variable self.network_buffer change.

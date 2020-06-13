@@ -8,34 +8,74 @@ use std::{
             Sender,
             SendError,
             Receiver,
+            channel,
         },
+    },
+    clone::{
+        Clone,
     },
     thread,
 };
-/*
+
 struct Worker {
-    task: Box<dyn Fn() -> Result<(), Report> + Send>,
-    sender: Sender<Order>,
-    receiver: Receiver<Order>,
+    order_sender: Sender<Order>,
+    task_report: Receiver<Report>,
 }
-trait WorkerTrait {
-    type OResult = Result<(), SendError<Order>>;
-    type TResult = Result<(), Report>;
+type OResult = Result<(), SendError<Order>>;
 
-    fn order(&self, o: Order) -> Self::OResult;
-    fn receive(&self) -> Option<Order>;
-    fn do_task_once(&self) -> Self::TResult;
+trait WorkerTrait
+    where
+        Self: Sized,
+{
+    // require methot.
+    fn order(&self, o: Order) -> OResult; // Out of thread -> Worker (Order)
+    fn receive(&self) -> Option<Report>;  // Worker -> Out of thread (Report)
 
-    fn do_while_stop(&self) {
+    // provide methot.
+    fn suspend(&self) -> OResult {
+        self.order(Order::Suspend)
+    }
+    fn destory(&self) -> OResult {
+        self.order(Order::Destory)
+    }
+}
+
+
+enum Order {
+    Suspend,
+    Restart,
+    Destory,
+}
+enum Report {
+    Success,
+    CritError,
+    GeneError,
+}
+
+//fn do_while_stop_with_recovery<>(task: impl<Fn() -> TResult>, recov: impl<Fn(Receiver<Report>) -> Report -> ()>) -> Self {
+
+impl Worker {
+    fn do_while_stop_with_recovery(
+        task: Box<dyn Fn() -> Report + Send>, 
+        recov: Box<dyn Fn(Sender<Report>) -> Box<dyn Fn(Report) -> ()>>,
+        ) -> Self {
+        let (order_sender, order_receiver) = channel(); // Out of thread -> Worker
+        let (worker_report_sender, worker_report_receiver) = channel(); // Worker -> Out of thread
+        let recovery = recov(worker_report_sender);
+
+        let ret = Self {
+            order_sender: order_sender,
+            task_report: worker_report_receiver
+        };
+
         thread::spawn(move || {
             // TODO name thread.
             let mut is_suspend = false;
             'main: loop {
                 // main loop
-                match self.receive() {
+                match order_receiver.try_recv() {
                     // if thread ordered.
-                    
-                    Some(order) => {
+                    Ok(order) => {
                         match order {
                             Order::Destory => {
                                 break 'main;
@@ -48,52 +88,29 @@ trait WorkerTrait {
                             },
                         }
                     },
-                    None => { },
+                    Err(_) => { },
                 };
 
                 if is_suspend {
                     continue 'main;
                 }
 
-                match self.do_task_once() {
+                match task() {
                     // do task and catch error.
-                    Ok(_) => { },
-                    Err(err) => {
-                        match err {
-                            Report::CritError => {
-                                println!("Critical error occured.");
-                                break 'main;
-                            },
-                            Report::GeneError => {
-                                println!("General error occured. this will be ignore.");
-                            },
-                        }
-                    }
+                    Report::Success => {
+                        println!("Success");
+                    },
+                    Report::CritError => {
+                        println!("Critical error occured.");
+                        break 'main;
+                    },
+                    Report::GeneError => {
+                        println!("General error occured. this will be ignore.");
+                    },
                 }
             }
         });
-    }
-
-    fn suspend(&self) -> OResult {
-        self.order(Order::Suspend);
-    }
-    fn destory(self) -> OResult {
-        self.order(Order::Destory)
+        ret
     }
 }
-    
 
-enum Order {
-    Suspend,
-    Restart,
-    Destory,
-}
-enum Report {
-    /// true: 処理を続ける
-    /// false: 処理を中断する
-    CritError,
-    GeneError,
-}
-
-
-*/
