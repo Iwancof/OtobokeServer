@@ -14,6 +14,7 @@ use std::{
     sync::{
         Arc,
         Mutex,
+        MutexGuard,
     },
     thread,
 };
@@ -31,10 +32,10 @@ use crate::{
     }
 };
 
-
 pub struct CommunicationProvider {
-    pub clients: Vec<Arc<Mutex<BufStream>>>, 
-    pub network_buffer : Vec<Arc<Mutex<String>>>,
+    clients_reader: Vec<Arc<Mutex<BufReader<TcpStream>>>>, 
+    clients_writer: Vec<Arc<Mutex<BufWriter<TcpStream>>>>, 
+    network_buffer : Vec<Arc<Mutex<String>>>,
 }
 
 type ProviderResult = Result<usize, std::io::Error>;
@@ -46,12 +47,16 @@ type ProviderResult = Result<usize, std::io::Error>;
 pub trait CommunicationProviderTrait {
     // require methot.
     fn send_bytes(&self, msg: &[u8]) -> ProviderResult;
+    fn read_stream_buffer_at(&self, index: usize) -> String;
+    fn set_buffer_at(&self, index: usize, s: String);
+    /// クローンを取得できる
+    fn get_buffer_at(&self, index: usize) -> String;
    
     // provide methot.
     fn send(&self, msg: String) -> ProviderResult {
-        println!("Sending... {}", msg);
         let msg_byte = &msg.into_bytes();
-        self.send_bytes(msg_byte)
+        let ret = self.send_bytes(msg_byte);
+        ret
     }
     fn send_data_with_tag_and_data<T: Serialize>(&self, tag: &str, name: &str, obj: &T) -> ProviderResult {
         self.send(
@@ -75,38 +80,65 @@ pub trait CommunicationProviderTrait {
 
 impl CommunicationProviderTrait for CommunicationProvider {
     fn send_bytes(&self, msg: &[u8]) -> ProviderResult {
-        for client_arc in &self.clients { 
-            match client_arc.lock() {
-                Ok(mut client) => {
-                    match client.write(msg) {
-                        Ok(_) => { /* */ },
-                        Err(r) => { return Err(r); }
-                    }
-                },
-                Err(_) => {
-                    println!("Could not send data");
-                }
+        for client_buf_writer in &self.clients_writer { 
+            match client_buf_writer.clone().lock().unwrap().write(msg) {
+                Ok(_) => { /* */ },
+                Err(r) => { return Err(r); }
             }
+            client_buf_writer.clone().lock().unwrap().flush();
         }
         Ok(msg.len())
+    }
+    fn read_stream_buffer_at(&self, index: usize) -> String {
+        read_by_buffer(self.clients_reader[index].clone())
+    }
+    fn set_buffer_at(&self, index: usize, s: String) {
+        *(self.network_buffer.clone()[index].lock().unwrap()) = s;
+    }
+    /// クローンを取得できる
+    fn get_buffer_at(&self, index: usize) -> String {
+        self.network_buffer.clone()[index].lock().unwrap().clone()
     }
 }
 
 impl CommunicationProvider {
     pub fn new() -> Self {
         Self {
-            clients: vec![],
+            clients_reader: vec![],
+            clients_writer: vec![],
             network_buffer: vec![],
         }
     }
-    fn clients_count(&self) -> usize {
-        self.clients.len()
+    pub fn clients_count(&self) -> usize {
+        assert_eq!(self.clients_reader.len(), self.clients_writer.len());
+        self.clients_reader.len()
+    }
+    pub fn push_client(&mut self, stream: TcpStream, def_str: String) {
+        self.clients_reader.push(Arc::new(Mutex::new(BufReader::new(stream.try_clone().unwrap()))));
+        self.clients_writer.push(Arc::new(Mutex::new(BufWriter::new(stream.try_clone().unwrap()))));
+        self.network_buffer.push(Arc::new(Mutex::new(def_str)));
+    }
+    fn get_buf_reader_at(&self, index: usize) -> Arc<Mutex<BufReader<TcpStream>>> {
+        self.clients_reader[index].clone()
+    }
+    fn get_buf_writer_at(&self, index: usize) -> Arc<Mutex<BufWriter<TcpStream>>> {
+        self.clients_writer[index].clone()
     }
 }
 
 impl CommunicationProviderTrait for Arc<Mutex<CommunicationProvider>> {
     fn send_bytes(&self, msg: &[u8]) -> ProviderResult {
         self.lock().unwrap().send_bytes(msg)
+    }
+    fn read_stream_buffer_at(&self, index: usize) -> String {
+        self.lock().unwrap().read_stream_buffer_at(index)
+    }
+    fn set_buffer_at(&self, index: usize, s: String) {
+        self.lock().unwrap().set_buffer_at(index, s);
+    }
+    /// クローンを取得できる
+    fn get_buffer_at(&self, index: usize) -> String {
+        self.lock().unwrap().get_buffer_at(index)
     }
 }
 
@@ -117,66 +149,35 @@ impl GameController {
         self.comn_prov.send(msg).expect("Could not send data");
     }
     pub(super) fn parse_client_info(msg: String) -> Vec<f32> {
-        msg.split(',').
+        msg.trim().split(',').
             map(|e| e.parse().
                 expect("Could not parse data")).
                 collect()
     }
     pub(super) fn start_reading_coordinate(&self) {
-        let stream_cloned: Vec<Arc<Mutex<BufStream>>> = self.comn_prov.lock().unwrap().clients.clone();
-        let buffer_cloned: Vec<Arc<Mutex<String>>> = self.comn_prov.lock().unwrap().network_buffer.clone();
+        // let stream_cloned: Vec<Arc<Mutex<BufStream>>> = self.comn_prov.lock().unwrap().clients.clone();
+        // let buffer_cloned: Vec<Arc<Mutex<String>>> = self.comn_prov.lock().unwrap().network_buffer.clone();
+
+        let player_count = self.comn_prov.lock().unwrap().clients_count();
 
         // if data received, a mutex variable self.network_buffer change.
-        for (i, stream_arc_non_static) in stream_cloned.iter().enumerate() {
-            let stream_arc = stream_arc_non_static.clone(); // create 'static pointer
-            let mut data_buffer = buffer_cloned.clone();
+        for i in 0..player_count {
+            let i_th_bufstr = self.comn_prov.lock().unwrap().get_buf_reader_at(i);
+            let dest_of_write_buffer_sem = self.comn_prov.clone();
             thread::spawn(move || {
                 loop {
-                    match stream_arc.lock() {
-                        Ok(mut stream) => {
-                            let mut read_data = String::new();
-                            stream.rd.read_line(&mut read_data).unwrap();
-                            *(data_buffer[i].lock().unwrap()) = read_data.clone();
-                        },
-                        Err(_) => {
-                            println!("[warn] Could not lock client in start_reading_coordinate");
-                        }
-                    }
+                    let mut client_data = String::new();
+                    i_th_bufstr.clone().lock().unwrap().read_line(&mut client_data).unwrap();
+                    dest_of_write_buffer_sem.set_buffer_at(i, client_data);
                 }
             });
         }
     }
 }
 
-pub fn read_by_buffer(bs: Arc<Mutex<BufStream>>) -> String {
+pub fn read_by_buffer(bs: Arc<Mutex<BufReader<TcpStream>>>) -> String {
     let mut ret = String::new();
-    let reader = &mut bs.lock().expect("Could not lock buffer stream").rd;
-    reader.read_line(&mut ret).unwrap();
+    bs.clone().lock().unwrap().read_line(&mut ret).unwrap();
     ret
 }
 
-
-pub struct BufStream {
-    pub rd: BufReader<TcpStream>,
-    pub wr: BufWriter<TcpStream>,
-}
-
-impl BufStream {
-    pub fn new(stream: &TcpStream) -> BufStream {
-        BufStream{
-            rd: BufReader::new(
-                stream.try_clone().unwrap()),
-            wr: BufWriter::new(
-                stream.try_clone().unwrap())}
-    }
-    pub fn read_string(&mut self) -> String {
-        let mut ret = String::new();
-        self.rd.read_line(&mut ret).unwrap();
-        ret
-    }
-    pub fn write(&mut self, data: &[u8]) -> Result<(), std::io::Error> {
-        println!("send");
-        self.wr.write(data);
-        self.wr.flush()
-    }
-}

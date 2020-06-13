@@ -17,7 +17,7 @@ impl GameController {
 
         self.wait_until_clients_connection();
         // wait players
-        
+
         self.game_initialize();
 
         self.distribute_map();
@@ -37,15 +37,16 @@ impl GameController {
     pub fn start_game(&mut self) {
         println!("GameReady!!");
         self.announce_wrap("GameReady|".to_string());
+        self.start_reading_coordinate();
 
-        let cloned_network_buffer = self.comn_prov.lock().unwrap().network_buffer.clone();
+        let cloned_prov_network_buf = self.comn_prov.clone();
         let cloned_game = self.game.clone();
         let cloned_prov = self.comn_prov.clone();
         let client_count = self.player_limit;
 
         self.timer.subscribe(Box::new(move || {
             for i in 0..client_count {
-                let player_lastest_message = cloned_network_buffer[i].lock().unwrap().clone();
+                let player_lastest_message = cloned_prov_network_buf.get_buffer_at(i);
                 // get lastest player info
                 //println!("\x1b[10;0Hclient[{}] at {}",i,&player_lastest_message);
 

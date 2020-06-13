@@ -41,8 +41,6 @@ fn server_tester() {
         let server_test = thread::spawn(move || {
             let inner_test = thread::spawn(move || {
                 let mut g = GameController::new(game::Game::new(MapInfo::build_by_string(map_string.to_string()), 1));
-                //g.wait_for_players();
-                //g.start_game();
                 g.server_flow_tmp();
             });
 

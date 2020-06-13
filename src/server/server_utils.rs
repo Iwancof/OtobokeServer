@@ -34,7 +34,6 @@ use super::{
     communication::{
         CommunicationProviderTrait,
         CommunicationProvider,
-        BufStream,
         read_by_buffer,
     },
 };
@@ -52,7 +51,7 @@ impl GameController {
     pub(super) fn wait_until_clients_connection(&mut self) {
         //let address = "2400:4051:99c2:58f0:11a4:53a7:248:a471:5522";
         //let address = "192.168.1.7:5522";
-        let address = "localhost:5522";
+        let address = "192.168.1.7:5522";
         let listener = net::TcpListener::bind(address).unwrap(); //Create Listener
         let mut count = 0;
 
@@ -76,7 +75,7 @@ impl GameController {
         }
     }
     pub fn accept_client_stream(&self, mut stream: net::TcpStream) {
-        let json = "{".to_string() + &format!(r#""counter":{}"#,(self.comn_prov.lock().unwrap().clients.len())) + "}|";
+        let json = "{".to_string() + &format!(r#""counter":{}"#,(self.comn_prov.lock().unwrap().clients_count())) + "}|";
         // tell a client id to the client.
 
         match stream.write(&json.into_bytes()) {
@@ -91,9 +90,7 @@ impl GameController {
     }
     pub fn join_client_stream(&self, stream: net::TcpStream) {
         //self.clients.lock().unwrap().push(stream);
-        let mut prov_ptr = self.comn_prov.lock().unwrap();
-        prov_ptr.clients.push(Arc::new(Mutex::new(BufStream::new(&stream))));
-        prov_ptr.network_buffer.push(Arc::new(Mutex::new("0, 0, 0".to_string())));
+        self.comn_prov.lock().unwrap().push_client(stream, "0,0,0".to_string());
 
         self.player_info_initialize_in_map();
     }
@@ -103,7 +100,15 @@ impl GameController {
 
     pub(super) fn wait_and_prepare_communication(&mut self) {
         // wait client effect
-        
+       
+        for i in 0..self.player_limit {
+            let msg = self.comn_prov.read_stream_buffer_at(i);
+            if msg != "END_EFFECT\n" {
+                panic!("Invalid message in wait client effect. data is {}", msg);
+            }
+        }
+
+        /*
         let client_count = self.player_limit;
         let mut receivers = vec![];
         for i in 0..client_count {
@@ -127,8 +132,8 @@ impl GameController {
                 }
             }
         }
+        */
 
-        self.start_reading_coordinate();
     }
 
 }
