@@ -1,10 +1,11 @@
 
-pub mod front;
-pub mod game_parents;
+mod front;
+mod game_parents;
 pub mod server_interface;
-pub mod server_utils;
+mod server_utils;
 pub mod communication;
-pub mod data_factory;
+mod data_factory;
+mod worker;
 
 //       Clients
 //          |
@@ -12,7 +13,7 @@ pub mod data_factory;
 //     |            |
 // game_parents   server_interface<--project_main
 //   |       |      |
-// Games    server_utils
+// Games    server_utils---worker
 //             |
 //       communication
 //             |

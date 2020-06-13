@@ -29,7 +29,6 @@ use std::sync::{
 
 use crate::CommunicationProviderTrait;
 
-/// パックマンの動作や、クライアントへの通知を含めたマップ管理構造体
 impl MapProcAsGame { // for AI
     /// 引数にMapInfoを取り、初期値やフィールドの初期化を行う
     pub fn new(map: MapInfo) -> Self {
@@ -147,7 +146,8 @@ impl MapProcAsGame { // for AI
     fn pacman_state_change_notify<T: CommunicationProviderTrait>(prov: T, state: Arc<Mutex<PMState>>) {
         &prov.send_data_with_tag_and_string("PACSTA", state.lock().unwrap().to_string()).unwrap();
     }
-    fn routed_next_point(&self, movable_points: Vec<QuanCoord>) -> QuanCoord {
+    /// 一本道を進む関数。交差点で呼ばれたらpanicする(2つの意味で)
+    pub fn routed_next_point(&self, movable_points: Vec<QuanCoord>) -> QuanCoord {
         let next_point: Vec<&QuanCoord> = movable_points.iter().filter(|x| **x != self.pm_prev_place).collect();
         if next_point.len() != 1 {
             panic!("'MapProcAsGame::routed_next_point' must be called in non infer point");
@@ -156,6 +156,7 @@ impl MapProcAsGame { // for AI
         **next_point.first().unwrap()
         
     }
+    /// posでの移動評価関数
     fn evaluate_at(&mut self, pos: QuanCoord) -> f64 {
         //see, "パックマンの動き" om https://hackmd.io/VP2HVfw-Rc2COcPSKJQymQ?both 
         let mut attractive_score: f64 = 0.;
@@ -194,10 +195,12 @@ impl MapProcAsGame { // for AI
         //println!("evalued at {:?}, score is {}", pos, attractive_score);
         attractive_score
     }
+    /// 餌に対して、距離からスコアを算出する 
     fn map_element_bias_with_dist(dist: f64) -> f64 {
         // y = e^(-x). and x >= 0
         (-dist).exp() * 1.0
     }
+    /// プレイヤーに対して、距離からスコアを算出する 
     fn player_pos_bias_with_dist(dist: f64) -> f64 {
         -100. / (dist.powf(4.))
     }
