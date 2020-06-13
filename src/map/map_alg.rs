@@ -147,7 +147,7 @@ impl MapProcAsGame { // for AI
     fn pacman_state_change_notify<T: CommunicationProviderTrait>(prov: T, state: Arc<Mutex<PMState>>) {
         &prov.send_data_with_tag_and_string("PACSTA", state.lock().unwrap().to_string()).unwrap();
     }
-    fn routed_next_point(&self, movable_points: Vec<QuanCoord>) -> QuanCoord {
+    pub fn routed_next_point(&self, movable_points: Vec<QuanCoord>) -> QuanCoord {
         let next_point: Vec<&QuanCoord> = movable_points.iter().filter(|x| **x != self.pm_prev_place).collect();
         if next_point.len() != 1 {
             panic!("'MapProcAsGame::routed_next_point' must be called in non infer point");

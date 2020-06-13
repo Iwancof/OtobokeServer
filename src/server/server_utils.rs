@@ -51,7 +51,8 @@ impl GameController {
     
     pub(super) fn wait_until_clients_connection(&mut self) {
         //let address = "2400:4051:99c2:58f0:11a4:53a7:248:a471:5522";
-        let address = "192.168.1.7:5522";
+        //let address = "192.168.1.7:5522";
+        let address = "localhost:5522";
         let listener = net::TcpListener::bind(address).unwrap(); //Create Listener
         let mut count = 0;
 

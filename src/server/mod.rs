@@ -5,6 +5,7 @@ pub mod server_interface;
 pub mod server_utils;
 pub mod communication;
 pub mod data_factory;
+pub mod test;
 
 //       Clients
 //          |
