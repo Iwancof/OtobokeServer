@@ -62,7 +62,8 @@ fn server_tester() {
                         }
                     }
                     println!("aaaaaa");
-                    match reader.read_until(b'|', &mut test_data.lock().unwrap()) {
+                    let result = reader.read_until(b'|', &mut test_data.lock().unwrap());
+                    match result {
                         Ok(_) => println!("READ: {:?}", String::from_utf8(test_data.lock().unwrap().to_vec()).unwrap()),
                         Err(_) => println!("could not read."),
                     }
