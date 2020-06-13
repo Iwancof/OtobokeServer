@@ -32,6 +32,7 @@ use crate::{
     }
 };
 
+/// 各クライアントとのBufReader/BufWriterとBuffer(String)を扱う構造体
 pub struct CommunicationProvider {
     clients_reader: Vec<Arc<Mutex<BufReader<TcpStream>>>>, 
     clients_writer: Vec<Arc<Mutex<BufWriter<TcpStream>>>>, 
@@ -53,21 +54,25 @@ pub trait CommunicationProviderTrait {
     fn get_buffer_at(&self, index: usize) -> String;
    
     // provide methot.
+    /// 全てのクライアントにmsg(String)を送信し、送ったバイト数を返す
     fn send(&self, msg: String) -> ProviderResult {
         let msg_byte = &msg.into_bytes();
         let ret = self.send_bytes(msg_byte);
         ret
     }
+    /// 全てのクライアントにタグ・名前・T型のオブジェクトをJsonとして送信し、送ったバイト数を返す
     fn send_data_with_tag_and_data<T: Serialize>(&self, tag: &str, name: &str, obj: &T) -> ProviderResult {
         self.send(
             json_build(tag, name, obj) + "|"
             )
     }
+    /// 全てのクライアントにタグ・名前・Vec<T>型のオブジェクトをJsonとして送信し、送ったバイト数を返す
     fn send_data_with_tag_and_vec_data<T: Serialize>(&self, tag: &str, name: &str, obj: &Vec<T>) -> ProviderResult {
         self.send(
             json_build_vec(tag, name, obj) + "|"
             )
     }
+    /// 全てのクライアントに tag;data の形式でデータを送信し、送ったバイト数を返す
     fn send_data_with_tag_and_string(&self, tag: &str, data: String) -> ProviderResult {
         let mut sd = String::new();
         sd += tag;
@@ -79,6 +84,7 @@ pub trait CommunicationProviderTrait {
 }
 
 impl CommunicationProviderTrait for CommunicationProvider {
+    /// 全てのクライアントにmsg([u8])を送信し、送ったバイト数を返す
     fn send_bytes(&self, msg: &[u8]) -> ProviderResult {
         for client_buf_writer in &self.clients_writer { 
             match client_buf_writer.clone().lock().unwrap().write(msg) {
@@ -109,18 +115,22 @@ impl CommunicationProvider {
             network_buffer: vec![],
         }
     }
+    /// クライアント数を返す
     pub fn clients_count(&self) -> usize {
         assert_eq!(self.clients_reader.len(), self.clients_writer.len());
         self.clients_reader.len()
     }
+    /// CommunicationProviderの各要素を新しいクライアント用にそれぞれ追加する
     pub fn push_client(&mut self, stream: TcpStream, def_str: String) {
         self.clients_reader.push(Arc::new(Mutex::new(BufReader::new(stream.try_clone().unwrap()))));
         self.clients_writer.push(Arc::new(Mutex::new(BufWriter::new(stream.try_clone().unwrap()))));
         self.network_buffer.push(Arc::new(Mutex::new(def_str)));
     }
+    /// indexで指定したクライアントのBufReaderを取得
     fn get_buf_reader_at(&self, index: usize) -> Arc<Mutex<BufReader<TcpStream>>> {
         self.clients_reader[index].clone()
     }
+    /// indexで指定したクライアントのBufWriterを取得
     fn get_buf_writer_at(&self, index: usize) -> Arc<Mutex<BufWriter<TcpStream>>> {
         self.clients_writer[index].clone()
     }
@@ -145,15 +155,18 @@ impl CommunicationProviderTrait for Arc<Mutex<CommunicationProvider>> {
 
 
 impl GameController {
+    /// 全てのクライアントにmsg(String)を送信し、送ったバイト数を返す
     pub fn announce_wrap(&self, msg: String){
         self.comn_prov.send(msg).expect("Could not send data");
     }
+    /// msg(String)を','で切り分け、Vec<f32>で返す
     pub(super) fn parse_client_info(msg: String) -> Vec<f32> {
         msg.trim().split(',').
             map(|e| e.parse().
                 expect("Could not parse data")).
                 collect()
     }
+    /// 各プレイヤーの座標の読み取りを開始
     pub(super) fn start_reading_coordinate(&self) {
         let player_count = self.comn_prov.lock().unwrap().clients_count();
 
@@ -172,9 +185,9 @@ impl GameController {
     }
 }
 
+/// バッファからデータを読み取りStringを返す
 pub fn read_by_buffer(bs: Arc<Mutex<BufReader<TcpStream>>>) -> String {
     let mut ret = String::new();
     bs.clone().lock().unwrap().read_line(&mut ret).unwrap();
     ret
 }
-
