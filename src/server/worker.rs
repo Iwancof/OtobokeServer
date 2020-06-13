@@ -6,10 +6,12 @@ use std::{
         Mutex,
         mpsc::{
             Sender,
+            SendError,
+            Receiver,
         },
     },
+    thread,
 };
-
 /*
 struct Worker {
     task: Box<dyn Fn() -> Result<(), Report> + Send>,
@@ -22,35 +24,49 @@ trait WorkerTrait {
 
     fn order(&self, o: Order) -> Self::OResult;
     fn receive(&self) -> Option<Order>;
-    fn do_task_once(&self) -> ::TResult;
+    fn do_task_once(&self) -> Self::TResult;
 
-    fn do_while_stop() {
+    fn do_while_stop(&self) {
         thread::spawn(move || {
             // TODO name thread.
-            loop {
+            let mut is_suspend = false;
+            'main: loop {
                 // main loop
                 match self.receive() {
                     // if thread ordered.
                     
                     Some(order) => {
                         match order {
-                            Order::Stop => {
-                                break;
-                            }
+                            Order::Destory => {
+                                break 'main;
+                            }, 
+                            Order::Suspend => {
+                                is_suspend = true;
+                            },
+                            Order::Restart => {
+                                is_suspend = false;
+                            },
                         }
                     },
-                    None => ;,
+                    None => { },
                 };
+
+                if is_suspend {
+                    continue 'main;
+                }
 
                 match self.do_task_once() {
                     // do task and catch error.
-                    Ok(_) => ;,
+                    Ok(_) => { },
                     Err(err) => {
                         match err {
-                            Report::Error => {
-                                println!("Error occured");
-                                break;
-                            }
+                            Report::CritError => {
+                                println!("Critical error occured.");
+                                break 'main;
+                            },
+                            Report::GeneError => {
+                                println!("General error occured. this will be ignore.");
+                            },
                         }
                     }
                 }
@@ -69,12 +85,15 @@ trait WorkerTrait {
 
 enum Order {
     Suspend,
+    Restart,
     Destory,
 }
 enum Report {
-    Error,
+    /// true: 処理を続ける
+    /// false: 処理を中断する
+    CritError,
+    GeneError,
 }
-
 
 
 */
