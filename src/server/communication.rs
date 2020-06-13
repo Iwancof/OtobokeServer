@@ -31,7 +31,7 @@ use crate::{
     }
 };
 
-
+/// 各クライアントとのBufStreamとBuffer(String)を扱う構造体
 pub struct CommunicationProvider {
     pub clients: Vec<Arc<Mutex<BufStream>>>, 
     pub network_buffer : Vec<Arc<Mutex<String>>>,
@@ -48,21 +48,25 @@ pub trait CommunicationProviderTrait {
     fn send_bytes(&self, msg: &[u8]) -> ProviderResult;
    
     // provide methot.
+    /// 全てのクライアントにmsg(String)を送信し、送ったバイト数を返す
     fn send(&self, msg: String) -> ProviderResult {
         println!("Sending... {}", msg);
         let msg_byte = &msg.into_bytes();
         self.send_bytes(msg_byte)
     }
+    /// 全てのクライアントにタグ・名前・T型のオブジェクトをJsonとして送信し、送ったバイト数を返す
     fn send_data_with_tag_and_data<T: Serialize>(&self, tag: &str, name: &str, obj: &T) -> ProviderResult {
         self.send(
             json_build(tag, name, obj) + "|"
             )
     }
+    /// 全てのクライアントにタグ・名前・Vec<T>型のオブジェクトをJsonとして送信し、送ったバイト数を返す
     fn send_data_with_tag_and_vec_data<T: Serialize>(&self, tag: &str, name: &str, obj: &Vec<T>) -> ProviderResult {
         self.send(
             json_build_vec(tag, name, obj) + "|"
             )
     }
+    /// 全てのクライアントに tag;data の形式でデータを送信し、送ったバイト数を返す
     fn send_data_with_tag_and_string(&self, tag: &str, data: String) -> ProviderResult {
         let mut sd = String::new();
         sd += tag;
@@ -74,6 +78,7 @@ pub trait CommunicationProviderTrait {
 }
 
 impl CommunicationProviderTrait for CommunicationProvider {
+    /// 全てのクライアントにmsg([u8])を送信し、送ったバイト数を返す
     fn send_bytes(&self, msg: &[u8]) -> ProviderResult {
         for client_arc in &self.clients { 
             match client_arc.lock() {
@@ -99,6 +104,7 @@ impl CommunicationProvider {
             network_buffer: vec![],
         }
     }
+    /// クライアント数を返す
     fn clients_count(&self) -> usize {
         self.clients.len()
     }
@@ -113,15 +119,18 @@ impl CommunicationProviderTrait for Arc<Mutex<CommunicationProvider>> {
 
 
 impl GameController {
+    /// 全てのクライアントにmsg(String)を送信し、送ったバイト数を返す
     pub fn announce_wrap(&self, msg: String){
         self.comn_prov.send(msg).expect("Could not send data");
     }
+    /// msg(String)を','で切り分け、Vec<f32>で返す
     pub(super) fn parse_client_info(msg: String) -> Vec<f32> {
         msg.split(',').
             map(|e| e.parse().
                 expect("Could not parse data")).
                 collect()
     }
+    /// 各プレイヤーの座標の読み取りを開始
     pub(super) fn start_reading_coordinate(&self) {
         let stream_cloned: Vec<Arc<Mutex<BufStream>>> = self.comn_prov.lock().unwrap().clients.clone();
         let buffer_cloned: Vec<Arc<Mutex<String>>> = self.comn_prov.lock().unwrap().network_buffer.clone();
@@ -148,6 +157,7 @@ impl GameController {
     }
 }
 
+/// バッファからデータを読み取りStringを返す
 pub fn read_by_buffer(bs: Arc<Mutex<BufStream>>) -> String {
     let mut ret = String::new();
     let reader = &mut bs.lock().expect("Could not lock buffer stream").rd;
@@ -156,6 +166,7 @@ pub fn read_by_buffer(bs: Arc<Mutex<BufStream>>) -> String {
 }
 
 
+/// BufReaderとBufWriterをまとめた構造体
 pub struct BufStream {
     pub rd: BufReader<TcpStream>,
     pub wr: BufWriter<TcpStream>,
@@ -169,11 +180,13 @@ impl BufStream {
             wr: BufWriter::new(
                 stream.try_clone().unwrap())}
     }
+    /// ストリームからデータを読み取りStringを返す
     pub fn read_string(&mut self) -> String {
         let mut ret = String::new();
         self.rd.read_line(&mut ret).unwrap();
         ret
     }
+    /// ストリームにデータを書き込む
     pub fn write(&mut self, data: &[u8]) -> Result<(), std::io::Error> {
         println!("send");
         self.wr.write(data);
