@@ -6,6 +6,7 @@ mod server_utils;
 pub mod communication;
 mod data_factory;
 mod worker;
+mod test;
 
 //       Clients
 //          |

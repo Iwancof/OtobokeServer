@@ -16,7 +16,6 @@ use super::{
     coord::QuanCoord,
 };
 
-/// 純粋なマップ情報
 impl MapInfo {
     /// 文字列からマップを生成
     pub fn build_by_string(map_data: String) -> Self {
