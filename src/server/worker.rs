@@ -125,6 +125,8 @@ impl Worker {
         });
         ret
     }
+    // Recommend
+    /// 推薦
     fn do_while_stop_report_error
         (
             task_name: &str,
@@ -141,18 +143,6 @@ impl Worker {
                     })
                 }),
             )
-    }
-    // Recommend
-    /// 推薦
-    fn do_task(task: Box<dyn Fn() -> Report + Send>) -> Self {
-        Self::do_while_stop_report_error("unnamed task", task)
-    }
-    fn run(task: Box<dyn Fn() -> () + Send>) -> Self {
-        let task_report = Box::new(move || {
-            task();
-            Report::Success
-        });
-        Self::do_task(task_report)
     }
 }
 
