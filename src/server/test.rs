@@ -30,7 +30,7 @@ use crate::{
 
 
 
-#[test]
+//#[test]
 fn server_tester() {
     println!("\n\n--------------------\nconnection test.\n\n");
     let mut test_data = Arc::new(Mutex::new(vec![]));

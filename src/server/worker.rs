@@ -14,6 +14,9 @@ use std::{
     clone::{
         Clone,
     },
+    time::{
+        Duration,
+    },
     thread,
 };
 
@@ -41,23 +44,41 @@ trait WorkerTrait
 }
 
 
+#[derive(Debug, PartialEq)]
 enum Order {
     Suspend,
     Restart,
     Destory,
 }
+
+#[derive(Debug, PartialEq)]
 enum Report {
     Success,
     CritError,
     GeneError,
 }
 
-//fn do_while_stop_with_recovery<>(task: impl<Fn() -> TResult>, recov: impl<Fn(Receiver<Report>) -> Report -> ()>) -> Self {
+impl WorkerTrait for Worker {
+    fn order(&self, o:Order) -> OResult {
+        self.order_sender.send(o)
+    }
+    fn receive(&self) -> Option<Report> {
+        match self.task_report.try_recv() {
+            Ok(rep) => Some(rep),
+            Err(_) => None,
+        }
+    }
+}
+
 
 impl Worker {
     fn do_while_stop_with_recovery(
+        task_name: &str,
+        // task_name
         task: Box<dyn Fn() -> Report + Send>, 
-        recov: Box<dyn Fn(Sender<Report>) -> Box<dyn Fn(Report) -> ()>>,
+        // worker's task
+        recov: Box<dyn Fn(Sender<Report>) -> Box<dyn Fn(Report) -> () + Send>>,
+        // if task report some error, recov(sender) calls.
         ) -> Self {
         let (order_sender, order_receiver) = channel(); // Out of thread -> Worker
         let (worker_report_sender, worker_report_receiver) = channel(); // Worker -> Out of thread
@@ -68,7 +89,9 @@ impl Worker {
             task_report: worker_report_receiver
         };
 
-        thread::spawn(move || {
+        let name = task_name.to_string();
+
+        thread::Builder::new().name(name.to_string()).spawn(move || {
             // TODO name thread.
             let mut is_suspend = false;
             'main: loop {
@@ -78,6 +101,7 @@ impl Worker {
                     Ok(order) => {
                         match order {
                             Order::Destory => {
+                                println!("Destory thread. name: {}", name);
                                 break 'main;
                             }, 
                             Order::Suspend => {
@@ -95,22 +119,63 @@ impl Worker {
                     continue 'main;
                 }
 
-                match task() {
-                    // do task and catch error.
-                    Report::Success => {
-                        println!("Success");
-                    },
-                    Report::CritError => {
-                        println!("Critical error occured.");
-                        break 'main;
-                    },
-                    Report::GeneError => {
-                        println!("General error occured. this will be ignore.");
-                    },
-                }
+                recovery(task());
             }
         });
         ret
     }
 }
 
+#[test]
+fn worker_test() {
+    let thread_counter = Arc::new(Mutex::new(0));
+    let worker = Worker::do_while_stop_with_recovery(
+        "thread for worker_test",
+        Box::new(
+            move || {
+                // do something
+                thread::sleep(Duration::from_millis(10));
+                let ret = match *thread_counter.lock().unwrap() {
+                    0 => Report::Success,
+                    1 => Report::GeneError,
+                    2 => Report::CritError,
+                    _ => Report::GeneError,
+                };
+                *thread_counter.lock().unwrap() += 1;
+                ret
+            },
+        ),
+        Box::new(
+            move | sender | {
+                Box::new(
+                    move | report | {
+                        match report {
+                            Report::Success => { sender.send(Report::Success); },
+                            Report::GeneError => { sender.send(Report::GeneError); },
+                            Report::CritError => { sender.send(Report::CritError); }
+                        }
+                    },
+                )
+            },
+        ),
+    );
+    let mut counter = 0;
+    loop {
+        match worker.receive() {
+            Some(rep) => {
+                let left = rep;
+                let right = match counter {
+                    0 => Report::Success,
+                    1 => Report::GeneError,
+                    2 => Report::CritError,
+                    _ => { break; },
+                };
+                assert_eq!(left, right);
+                counter += 1;
+            },
+            None => {
+                /* */
+            },
+        }
+    }
+}

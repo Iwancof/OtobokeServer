@@ -107,33 +107,6 @@ impl GameController {
                 panic!("Invalid message in wait client effect. data is {}", msg);
             }
         }
-
-        /*
-        let client_count = self.player_limit;
-        let mut receivers = vec![];
-        for i in 0..client_count {
-            let stream_cloned = self.comn_prov.lock().unwrap().clients[i].clone();
-            let (sender, receiver) = mpsc::channel();
-            receivers.push(receiver);
-            thread::spawn(move || {
-                sender.send(read_by_buffer(stream_cloned)).unwrap();
-            });
-        }
-
-        for r in receivers {
-            match r.recv() {
-                Ok(msg) => {
-                    if msg != "END_EFFECT\n" {
-                        panic!("Invalid message in wait client effect. data is {}", msg);
-                    }
-                },
-                Err(_) => {
-                    panic!("Receiver got error in waiting client effect.");
-                }
-            }
-        }
-        */
-
     }
 
 }
@@ -142,12 +115,6 @@ impl Drop for GameController {
     fn drop(&mut self) {
         println!("Game crushed");
     }
-}
-
-
-#[allow(unused)]
-pub fn print_typename<T>(_: T) {
-    println!("type = {}", std::any::type_name::<T>());
 }
 
 
