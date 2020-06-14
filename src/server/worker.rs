@@ -72,13 +72,14 @@ impl WorkerTrait for Worker {
 
 
 impl Worker {
-    fn do_while_stop_with_recovery(
-        task_name: &str,
-        // task_name
-        task: Box<dyn Fn() -> Report + Send>, 
-        // worker's task
-        recov: Box<dyn Fn(Sender<Report>) -> Box<dyn Fn(Report) -> () + Send>>,
-        // if task report some error, recov(sender) calls.
+    fn do_while_stop_with_recovery
+        (
+            task_name: &str,
+            // task_name
+            task: Box<dyn Fn() -> Report + Send>, 
+            // worker's task
+            recov: Box<dyn Fn(Sender<Report>) -> Box<dyn Fn(Report) -> () + Send>>,
+            // if task report some error, recov(sender) calls.
         ) -> Self {
         let (order_sender, order_receiver) = channel(); // Out of thread -> Worker
         let (worker_report_sender, worker_report_receiver) = channel(); // Worker -> Out of thread
@@ -123,6 +124,35 @@ impl Worker {
             }
         });
         ret
+    }
+    fn do_while_stop_report_error
+        (
+            task_name: &str,
+            task: Box<dyn Fn() -> Report + Send>,
+        ) -> Self {
+            Self::do_while_stop_with_recovery(
+                task_name,
+                task,
+                Box::new(move | sender | {
+                    Box::new(move | report | {
+                        if report != Report::Success {
+                            sender.send(report);
+                        }
+                    })
+                }),
+            )
+    }
+    // Recommend
+    /// 推薦
+    fn do_task(task: Box<dyn Fn() -> Report + Send>) -> Self {
+        Self::do_while_stop_report_error("unnamed task", task)
+    }
+    fn run(task: Box<dyn Fn() -> () + Send>) -> Self {
+        let task_report = Box::new(move || {
+            task();
+            Report::Success
+        });
+        Self::do_task(task_report)
     }
 }
 
