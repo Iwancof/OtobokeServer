@@ -22,31 +22,17 @@ use std::{
 use std::ops::{Deref, DerefMut, Add, Sub};
 use std::cmp::{PartialOrd};
 
-trait RxTimerTrait {
-    fn subscribe(&mut self, task: Box<dyn Fn() -> () + Send>, frec: u128) -> Result<usize, String>;
-    fn update(&mut self);
+use crate::server::worker::{
+    WorkerTrait,
+    Worker
+};
+
+const TIME_PER_COUNT: i128 = 10;
+
+pub struct ClockWorker {
+    workers: Vec<Worker>,
 }
 
-pub struct ProgressAndGoal<T: PartialOrd + Add + Sub + Copy> {
-    pub progress: T,
-    pub goal: T,
-}
-impl<T: PartialOrd + Add<Output = T> + Sub<Output = T> + Copy> ProgressAndGoal<T> {
-    pub fn add(&mut self, pg: T) -> bool {
-        self.progress = self.progress + pg;
-        if self.goal < self.progress {
-            self.progress = self.progress - pg;
-            return true;
-        }
-        false
-    }
-}
-
-pub struct RawRxTimer {
-    latest: Instant, // latest time.
-    task_time_totals: Vec<ProgressAndGoal<u128>>,
-    tasks: Vec<Box<dyn Fn() -> () + Send>>,
-}
 
 
 pub struct LoopTimerUnArc {

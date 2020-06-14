@@ -31,6 +31,7 @@ use crate::{
 
 
 //#[test]
+// wait for implement time spaned worker
 fn server_tester() {
     println!("\n\n--------------------\nconnection test.\n\n");
     let mut test_data = Arc::new(Mutex::new(vec![]));
@@ -83,4 +84,96 @@ fn server_tester() {
     }
     assert_eq!(String::from_utf8(test_data.lock().unwrap().to_vec()).unwrap(), map_string.to_string().replace("\n", ",") + ",|");
     println!("--------------------\n\n\n");
+}
+
+#[test]
+fn worker_test() {
+    use super::worker::{
+        WorkerTrait,
+        Worker,
+        Order,
+        Report,
+    };
+    use std::time::Duration;
+    let thread_counter = Arc::new(Mutex::new(0));
+    let worker = Worker::do_while_stop_with_recovery(
+        "thread for worker_test",
+        Box::new(
+            move || {
+                // do something
+                thread::sleep(Duration::from_millis(10));
+                let ret = match *thread_counter.lock().unwrap() {
+                    0 => Report::Success,
+                    1 => Report::GeneError,
+                    2 => Report::CritError,
+                    _ => Report::GeneError,
+                };
+                *thread_counter.lock().unwrap() += 1;
+                ret
+            },
+        ),
+        Box::new(
+            move | sender | {
+                Box::new(
+                    move | report | {
+                        match report {
+                            Report::Success => { sender.send(Report::Success); },
+                            Report::GeneError => { sender.send(Report::GeneError); },
+                            Report::CritError => { sender.send(Report::CritError); }
+                        }
+                    },
+                )
+            },
+        ),
+    );
+    let mut counter = 0;
+    loop {
+        match worker.receive() {
+            Some(rep) => {
+                let left = rep;
+                let right = match counter {
+                    0 => Report::Success,
+                    1 => Report::GeneError,
+                    2 => Report::CritError,
+                    _ => { break; },
+                };
+                assert_eq!(left, right);
+                counter += 1;
+            },
+            None => {
+                /* */
+            },
+        }
+    }
+}
+
+#[test]
+fn worker_once_test() {
+    use super::worker::{
+        WorkerTrait,
+        Worker,
+        Order,
+        Report,
+    };
+    use std::time::Duration;
+
+    let counter = Arc::new(Mutex::new(0));
+    let counter_clone = counter.clone();
+    let worker = Worker::do_while_stop_with_recovery(
+        "thread for worker_once_test",
+        Box::new(move || {
+            *counter_clone.lock().unwrap() += 1;
+            Report::Success
+        }),
+        Box::new(move | sender | {
+            Box::new(move | report | {
+                sender.send(report);
+            })
+        }),
+    );
+    worker.suspend();
+    assert_eq!(*counter.lock().unwrap(), 0);
+    worker.once();
+    worker.wait_receive();
+    //assert_eq!(*counter.lock().unwrap(), 1)
 }

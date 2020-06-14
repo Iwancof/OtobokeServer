@@ -20,21 +20,28 @@ use std::{
     thread,
 };
 
-struct Worker {
+pub struct Worker {
     order_sender: Sender<Order>,
     task_report: Receiver<Report>,
 }
 type OResult = Result<(), SendError<Order>>;
 
-trait WorkerTrait
+pub trait WorkerTrait
     where
         Self: Sized,
 {
     // require methot.
     fn order(&self, o: Order) -> OResult; // Out of thread -> Worker (Order)
     fn receive(&self) -> Option<Report>;  // Worker -> Out of thread (Report)
+    fn wait_receive(&self) -> Report;
 
     // provide methot.
+    fn once(&self) -> OResult {
+        self.order(Order::Once)
+    }
+    fn restart(&self) -> OResult {
+        self.order(Order::Restart)
+    }
     fn suspend(&self) -> OResult {
         self.order(Order::Suspend)
     }
@@ -45,14 +52,15 @@ trait WorkerTrait
 
 
 #[derive(Debug, PartialEq)]
-enum Order {
+pub enum Order {
+    Once,
     Suspend,
     Restart,
     Destory,
 }
 
 #[derive(Debug, PartialEq)]
-enum Report {
+pub enum Report {
     Success,
     CritError,
     GeneError,
@@ -68,11 +76,17 @@ impl WorkerTrait for Worker {
             Err(_) => None,
         }
     }
+    fn wait_receive(&self) -> Report {
+        match self.task_report.recv() {
+            Ok(rep) => rep,
+            Err(_) => panic!("task not responce"),
+        }
+    }
 }
 
 
 impl Worker {
-    fn do_while_stop_with_recovery
+    pub fn do_while_stop_with_recovery
         (
             task_name: &str,
             // task_name
@@ -111,6 +125,11 @@ impl Worker {
                             Order::Restart => {
                                 is_suspend = false;
                             },
+                            Order::Once => {
+                                is_suspend = true;
+                                recovery(task());
+                                continue 'main
+                            },
                         }
                     },
                     Err(_) => { },
@@ -127,7 +146,7 @@ impl Worker {
     }
     // Recommend
     /// 推薦
-    fn do_while_stop_report_error
+    pub fn do_while_stop_report_error
         (
             task_name: &str,
             task: Box<dyn Fn() -> Report + Send>,
@@ -146,56 +165,3 @@ impl Worker {
     }
 }
 
-#[test]
-fn worker_test() {
-    let thread_counter = Arc::new(Mutex::new(0));
-    let worker = Worker::do_while_stop_with_recovery(
-        "thread for worker_test",
-        Box::new(
-            move || {
-                // do something
-                thread::sleep(Duration::from_millis(10));
-                let ret = match *thread_counter.lock().unwrap() {
-                    0 => Report::Success,
-                    1 => Report::GeneError,
-                    2 => Report::CritError,
-                    _ => Report::GeneError,
-                };
-                *thread_counter.lock().unwrap() += 1;
-                ret
-            },
-        ),
-        Box::new(
-            move | sender | {
-                Box::new(
-                    move | report | {
-                        match report {
-                            Report::Success => { sender.send(Report::Success); },
-                            Report::GeneError => { sender.send(Report::GeneError); },
-                            Report::CritError => { sender.send(Report::CritError); }
-                        }
-                    },
-                )
-            },
-        ),
-    );
-    let mut counter = 0;
-    loop {
-        match worker.receive() {
-            Some(rep) => {
-                let left = rep;
-                let right = match counter {
-                    0 => Report::Success,
-                    1 => Report::GeneError,
-                    2 => Report::CritError,
-                    _ => { break; },
-                };
-                assert_eq!(left, right);
-                counter += 1;
-            },
-            None => {
-                /* */
-            },
-        }
-    }
-}
