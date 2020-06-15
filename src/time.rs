@@ -49,16 +49,28 @@ impl ClockWorker {
             instructor: Worker::<LinkedList::<(usize, Report)>>::do_while_stop_with_recovery(
                 "ClockWorker's timer",
                 Box::new(move || {
-                    let mut ret = LinkedList::new();
                     let count = timer.lock().unwrap().elapsed().as_millis();
-                    for (i, work) in workers_clone.lock().unwrap().iter_mut().enumerate() {
+                    for work in workers_clone.lock().unwrap().iter_mut() {
                         work.0 += count;
                         if work.0 > work.1 {
                             work.0 -= work.1;
-                            let task_report = work.2.once();
-                            ret.push_back((i, task_report));
+                            work.2.once().unwrap();
                         }
                     }
+                    let mut ret = LinkedList::new();
+                    // wait all tasks result.
+                    
+                    for (i, work) in workers_clone.lock().unwrap().iter_mut().enumerate() {
+                        match work.2.timeout_receive() {
+                            Some(report) => {
+                                ret.push_back((i, report));
+                            },
+                            None => {
+                                ret.push_back((i, Report::Timeout));
+                            }
+                        }
+                    }
+
                     ret
                 }),
                 Box::new( move | sender | {
@@ -68,11 +80,14 @@ impl ClockWorker {
                                 (index, Report::Success) => {
                                     println!("in thread{} Success thread", index);
                                 },
+                                (index, Report::Timeout) => {
+                                    println!("in thread{} General error occures", index);
+                                },
                                 (index, Report::CritError) => {
-                                    println!("in thread{}Critical error occures", index);
+                                    println!("in thread{} Critical error occures", index);
                                 },
                                 (index, Report::GeneError) => {
-                                    println!("in thread{}General error occures", index);
+                                    println!("in thread{} Timeout", index);
                                 },
                             }
                         }
@@ -94,10 +109,11 @@ fn clock_worker_test() {
                     let ptr: &mut i32  = &mut *counter.lock().unwrap();
                     *ptr += 1;
                     thread::sleep(Duration::from_millis(10));
-                    match *ptr % 3 {
+                    match *ptr % 4 {
                         0 => Report::Success,
                         1 => Report::CritError,
                         2 => Report::GeneError,
+                        3 => Report::Success,
                         _ => {
                             panic!("Error occures");
                         }

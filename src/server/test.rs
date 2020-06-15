@@ -106,6 +106,7 @@ fn worker_test() {
                     0 => Report::Success,
                     1 => Report::GeneError,
                     2 => Report::CritError,
+                    3 => Report::Timeout,
                     _ => Report::GeneError,
                 };
                 *thread_counter.lock().unwrap() += 1;
@@ -118,6 +119,7 @@ fn worker_test() {
                     move | report | {
                         match report {
                             Report::Success => { sender.send(Report::Success); },
+                            Report::Timeout => { sender.send(Report::Timeout); },
                             Report::GeneError => { sender.send(Report::GeneError); },
                             Report::CritError => { sender.send(Report::CritError); }
                         }
@@ -135,6 +137,7 @@ fn worker_test() {
                     0 => Report::Success,
                     1 => Report::GeneError,
                     2 => Report::CritError,
+                    3 => Report::Timeout,
                     _ => { break; },
                 };
                 assert_eq!(left, right);

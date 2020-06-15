@@ -34,6 +34,7 @@ pub trait WorkerTrait<ReportType: 'static>
     fn order(&self, o: Order) -> OResult; // Out of thread -> Worker (Order)
     fn receive(&self) -> Option<ReportType>;  // Worker -> Out of thread (Report)
     fn wait_receive(&self) -> ReportType;
+    fn timeout_receive_with_duration(&self, span: Duration) -> Option<ReportType>;
 
     // provide methot.
     fn once(&self) -> OResult {
@@ -47,6 +48,9 @@ pub trait WorkerTrait<ReportType: 'static>
     }
     fn destory(&self) -> OResult {
         self.order(Order::Destory)
+    }
+    fn timeout_receive(&self) -> Option<ReportType> {
+        self.timeout_receive_with_duration(Duration::from_millis(100))
     }
 }
 
@@ -63,6 +67,7 @@ pub enum Order {
 #[derive(Debug, PartialEq)]
 pub enum Report {
     Success,
+    Timeout,
     CritError,
     GeneError,
 }
@@ -81,6 +86,12 @@ impl<ReportType: 'static> WorkerTrait<ReportType> for Worker<ReportType> {
         match self.task_report.recv() {
             Ok(rep) => rep,
             Err(_) => panic!("task not responce"),
+        }
+    }
+    fn timeout_receive_with_duration(&self, span: Duration) -> Option<ReportType> {
+        match self.task_report.recv_timeout(span) {
+            Ok(report) => Some(report),
+            Err(_) => None,
         }
     }
 }
