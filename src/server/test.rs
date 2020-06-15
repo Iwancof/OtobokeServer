@@ -173,7 +173,12 @@ fn worker_once_test() {
     );
     worker.suspend();
     assert_eq!(*counter.lock().unwrap(), 0);
-    worker.once();
+    worker.once(); // 1
     worker.wait_receive();
-    //assert_eq!(*counter.lock().unwrap(), 1)
+    assert_eq!(*counter.lock().unwrap(), 1);
+    worker.once(); // 2
+    worker.once(); // 3
+    worker.once(); // 4
+    worker.wait_receive();
+    assert_eq!(*counter.lock().unwrap(), 4);
 }

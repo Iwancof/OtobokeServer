@@ -15,6 +15,10 @@ use std::{
             Sender,
         }
     },
+    collections::{
+        HashSet,
+        LinkedList,
+    }
 };
 
 // for test use
@@ -24,15 +28,91 @@ use std::cmp::{PartialOrd};
 
 use crate::server::worker::{
     WorkerTrait,
-    Worker
+    Worker,
+    Report,
 };
 
-const TIME_PER_COUNT: i128 = 10;
-
 pub struct ClockWorker {
-    workers: Vec<Worker>,
+    pub workers: Arc<Mutex<Vec<(u128, u128, Worker<Report>)>>>,
+    // task has (counter, frecquency, Worker)
+    instructor: Worker<LinkedList<(usize, Report)>>,
+    // if tasks occure error, instructor report set of (task_id, task_error).
 }
 
+impl ClockWorker {
+    fn new() -> Self {
+        let timer = Arc::new(Mutex::new(Instant::now()));
+        let workers = Arc::new(Mutex::new(vec![]));
+        let workers_clone = workers.clone();
+        Self {
+            workers: workers,
+            instructor: Worker::<LinkedList::<(usize, Report)>>::do_while_stop_with_recovery(
+                "ClockWorker's timer",
+                Box::new(move || {
+                    let mut ret = LinkedList::new();
+                    let count = timer.lock().unwrap().elapsed().as_millis();
+                    for (i, work) in workers_clone.lock().unwrap().iter_mut().enumerate() {
+                        work.0 += count;
+                        if work.0 > work.1 {
+                            work.0 -= work.1;
+                            let task_report = work.2.once();
+                            ret.push_back((i, task_report));
+                        }
+                    }
+                    ret
+                }),
+                Box::new( move | sender | {
+                    Box::new( move | reports | {
+                        for report in reports.iter() {
+                            match report {
+                                (index, Report::Success) => {
+                                    println!("in thread{} Success thread", index);
+                                },
+                                (index, Report::CritError) => {
+                                    println!("in thread{}Critical error occures", index);
+                                },
+                                (index, Report::GeneError) => {
+                                    println!("in thread{}General error occures", index);
+                                },
+                            }
+                        }
+                    })
+                }),
+            ),
+        }
+    }
+}
+
+#[test]
+fn clock_worker_test() {
+    let mut clock_worker = ClockWorker::new();
+    let counter = Arc::new(Mutex::new(0));
+    clock_worker.workers.lock().unwrap().push(
+        (100, 0, Worker::do_while_stop_with_recovery(
+                "thread for clock_worker_test",
+                Box::new(move || {
+                    let ptr: &mut i32  = &mut *counter.lock().unwrap();
+                    *ptr += 1;
+                    thread::sleep(Duration::from_millis(10));
+                    match *ptr % 3 {
+                        0 => Report::Success,
+                        1 => Report::CritError,
+                        2 => Report::GeneError,
+                        _ => {
+                            panic!("Error occures");
+                        }
+                    }
+                }),
+                Box::new(move | sender | {
+                    Box::new(move | report | {
+                        sender.send(report);
+                    })
+                }),
+        )));
+    thread::sleep(Duration::from_millis(1000));
+
+    panic!();
+}
 
 
 pub struct LoopTimerUnArc {

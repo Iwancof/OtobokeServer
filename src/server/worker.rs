@@ -20,20 +20,20 @@ use std::{
     thread,
 };
 
-pub struct Worker {
+pub struct Worker<ReportType: 'static> {
     order_sender: Sender<Order>,
-    task_report: Receiver<Report>,
+    task_report: Receiver<ReportType>,
 }
 type OResult = Result<(), SendError<Order>>;
 
-pub trait WorkerTrait
+pub trait WorkerTrait<ReportType: 'static>
     where
         Self: Sized,
 {
     // require methot.
     fn order(&self, o: Order) -> OResult; // Out of thread -> Worker (Order)
-    fn receive(&self) -> Option<Report>;  // Worker -> Out of thread (Report)
-    fn wait_receive(&self) -> Report;
+    fn receive(&self) -> Option<ReportType>;  // Worker -> Out of thread (Report)
+    fn wait_receive(&self) -> ReportType;
 
     // provide methot.
     fn once(&self) -> OResult {
@@ -59,6 +59,7 @@ pub enum Order {
     Destory,
 }
 
+// default report type(can use do_while_stop_report_error)
 #[derive(Debug, PartialEq)]
 pub enum Report {
     Success,
@@ -66,17 +67,17 @@ pub enum Report {
     GeneError,
 }
 
-impl WorkerTrait for Worker {
+impl<ReportType: 'static> WorkerTrait<ReportType> for Worker<ReportType> {
     fn order(&self, o:Order) -> OResult {
         self.order_sender.send(o)
     }
-    fn receive(&self) -> Option<Report> {
+    fn receive(&self) -> Option<ReportType> {
         match self.task_report.try_recv() {
             Ok(rep) => Some(rep),
             Err(_) => None,
         }
     }
-    fn wait_receive(&self) -> Report {
+    fn wait_receive(&self) -> ReportType {
         match self.task_report.recv() {
             Ok(rep) => rep,
             Err(_) => panic!("task not responce"),
@@ -85,14 +86,14 @@ impl WorkerTrait for Worker {
 }
 
 
-impl Worker {
+impl<ReportType: 'static> Worker<ReportType> {
     pub fn do_while_stop_with_recovery
         (
             task_name: &str,
             // task_name
-            task: Box<dyn Fn() -> Report + Send>, 
+            task: Box<dyn Fn() -> ReportType + Send>, 
             // worker's task
-            recov: Box<dyn Fn(Sender<Report>) -> Box<dyn Fn(Report) -> () + Send>>,
+            recov: Box<dyn Fn(Sender<ReportType>) -> Box<dyn Fn(ReportType) -> () + Send>>,
             // if task report some error, recov(sender) calls.
         ) -> Self {
         let (order_sender, order_receiver) = channel(); // Out of thread -> Worker
@@ -139,11 +140,13 @@ impl Worker {
                     continue 'main;
                 }
 
-                recovery(task());
+                recovery(task()); // wait task
             }
         });
         ret
     }
+}
+impl Worker<Report> {
     // Recommend
     /// 推薦
     pub fn do_while_stop_report_error
