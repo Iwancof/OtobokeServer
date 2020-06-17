@@ -6,9 +6,12 @@ use std::{
         Mutex,
         mpsc::{
             Sender,
+            SyncSender,
             SendError,
             Receiver,
             channel,
+            RecvTimeoutError,
+            sync_channel,
         },
     },
     clone::{
@@ -18,164 +21,86 @@ use std::{
         Duration,
     },
     thread,
+    process::exit
 };
 
-pub struct Worker<ReportType: 'static> {
-    order_sender: Sender<Order>,
-    task_report: Receiver<ReportType>,
+pub struct Worker {
+    task: Box<dyn Fn() -> WorkerResult + Send + Sync>,
+    send_to_logger: SyncSender<String>,
+    // Worker: Send + Sync.
 }
-type OResult = Result<(), SendError<Order>>;
-
-pub trait WorkerTrait<ReportType: 'static>
-    where
-        Self: Sized,
-{
-    // require methot.
-    fn order(&self, o: Order) -> OResult; // Out of thread -> Worker (Order)
-    fn receive(&self) -> Option<ReportType>;  // Worker -> Out of thread (Report)
-    fn wait_receive(&self) -> ReportType;
-    fn timeout_receive_with_duration(&self, span: Duration) -> Option<ReportType>;
-
-    // provide methot.
-    fn once(&self) -> OResult {
-        self.order(Order::Once)
-    }
-    fn restart(&self) -> OResult {
-        self.order(Order::Restart)
-    }
-    fn suspend(&self) -> OResult {
-        self.order(Order::Suspend)
-    }
-    fn destory(&self) -> OResult {
-        self.order(Order::Destory)
-    }
-    fn timeout_receive(&self) -> Option<ReportType> {
-        self.timeout_receive_with_duration(Duration::from_millis(100))
-    }
+pub enum WorkerResult {
+    Complete,  // Not system damage(may be error but not catch. use shared pointer)
+    Pollution(String), // System damage 
 }
-
-
-#[derive(Debug, PartialEq)]
-pub enum Order {
-    Once,
-    Suspend,
-    Restart,
-    Destory,
-}
-
-// default report type(can use do_while_stop_report_error)
-#[derive(Debug, PartialEq)]
-pub enum Report {
-    Success,
-    Timeout,
-    CritError,
-    GeneError,
-}
-
-impl<ReportType: 'static> WorkerTrait<ReportType> for Worker<ReportType> {
-    fn order(&self, o:Order) -> OResult {
-        self.order_sender.send(o)
-    }
-    fn receive(&self) -> Option<ReportType> {
-        match self.task_report.try_recv() {
-            Ok(rep) => Some(rep),
-            Err(_) => None,
+impl Worker {
+    pub fn new(task: Box<dyn Fn() -> WorkerResult + Send + Sync>, instance_sender: SyncSender<String>) -> Self {
+        Self {
+            task: task,
+            send_to_logger: instance_sender,
         }
     }
-    fn wait_receive(&self) -> ReportType {
-        match self.task_report.recv() {
-            Ok(rep) => rep,
-            Err(_) => panic!("task not responce"),
-        }
-    }
-    fn timeout_receive_with_duration(&self, span: Duration) -> Option<ReportType> {
-        match self.task_report.recv_timeout(span) {
-            Ok(report) => Some(report),
-            Err(_) => None,
-        }
-    }
-}
-
-
-impl<ReportType: 'static> Worker<ReportType> {
-    pub fn do_while_stop_with_recovery
-        (
-            task_name: &str,
-            // task_name
-            task: Box<dyn Fn() -> ReportType + Send>, 
-            // worker's task
-            recov: Box<dyn Fn(Sender<ReportType>) -> Box<dyn Fn(ReportType) -> () + Send>>,
-            // if task report some error, recov(sender) calls.
-        ) -> Self {
-        let (order_sender, order_receiver) = channel(); // Out of thread -> Worker
-        let (worker_report_sender, worker_report_receiver) = channel(); // Worker -> Out of thread
-        let recovery = recov(worker_report_sender);
-
-        let ret = Self {
-            order_sender: order_sender,
-            task_report: worker_report_receiver
-        };
-
-        let name = task_name.to_string();
-
-        thread::Builder::new().name(name.to_string()).spawn(move || {
-            // TODO name thread.
-            let mut is_suspend = false;
-            'main: loop {
-                // main loop
-                match order_receiver.try_recv() {
-                    // if thread ordered.
-                    Ok(order) => {
-                        match order {
-                            Order::Destory => {
-                                println!("Destory thread. name: {}", name);
-                                break 'main;
-                            }, 
-                            Order::Suspend => {
-                                is_suspend = true;
-                            },
-                            Order::Restart => {
-                                is_suspend = false;
-                            },
-                            Order::Once => {
-                                is_suspend = true;
-                                recovery(task());
-                                continue 'main
-                            },
-                        }
-                    },
-                    Err(_) => { },
-                };
-
-                if is_suspend {
-                    continue 'main;
-                }
-
-                recovery(task()); // wait task
+    pub fn run(&self) {
+        match (self.task)() {
+            WorkerResult::Complete => {
+                // Complate task
+                println!("Complete task");
+            },
+            WorkerResult::Pollution(message) => {
+                // Worker detect critical damage to instance.
+                self.report(message);
             }
-        });
-        ret
+        }
+    }
+    fn report(&self, msg: String) -> ! {
+        match self.send_to_logger.send(msg) {
+            Ok(_) => {
+                // Suggest killing this instance to observer
+                println!("This instance will be killed");
+            },
+            Err(_) => {
+                println!("Could not send to observer. ");
+                println!("Critical damage detected"); 
+                println!("System will be abort"); 
+                exit(-1);
+            }
+        }
+        loop {
+        }
     }
 }
-impl Worker<Report> {
-    // Recommend
-    /// 推薦
-    pub fn do_while_stop_report_error
-        (
-            task_name: &str,
-            task: Box<dyn Fn() -> Report + Send>,
-        ) -> Self {
-            Self::do_while_stop_with_recovery(
-                task_name,
-                task,
-                Box::new(move | sender | {
-                    Box::new(move | report | {
-                        if report != Report::Success {
-                            sender.send(report);
-                        }
-                    })
-                }),
-            )
-    }
+
+#[test]
+fn worker_success_test() {
+    let (sender, receiver) = sync_channel(16);
+    let worker = Worker::new(
+        Box::new(move || {
+            thread::sleep(Duration::from_millis(100));
+            WorkerResult::Complete
+        }),sender.clone(),);
+    thread::spawn(move || {
+        worker.run();
+    });
+    assert_eq!(
+        receiver.recv_timeout(Duration::from_millis(200)),
+        Err(RecvTimeoutError::Timeout),
+    );
+}
+
+#[test]
+fn worker_fail_test() {
+    let (sender, receiver) = sync_channel(16);
+    let worker = Worker::new(
+        Box::new(move || {
+            thread::sleep(Duration::from_millis(100));
+            WorkerResult::Pollution("Some error".to_string())
+        }), sender,);
+    thread::spawn(move || {
+        worker.run();
+    });
+    assert_eq!(
+        receiver.recv_timeout(Duration::from_millis(200)),
+        Ok("Some error".to_string())
+    );
 }
 
