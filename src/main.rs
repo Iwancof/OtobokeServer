@@ -1,11 +1,15 @@
 #![allow(unused)]
 #![allow(dead_code)]
 
+#[macro_use]
+extern crate lazy_static;
+
 mod server;
 mod game;
 mod time;
 mod map;
 mod json;
+mod system_observer;
 
 #[macro_use]
 extern crate serde_derive;
