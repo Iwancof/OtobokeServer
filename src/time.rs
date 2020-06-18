@@ -13,6 +13,8 @@ use std::{
         mpsc::{
             channel,
             Sender,
+            SyncSender,
+            sync_channel,
         }
     },
     collections::{
@@ -21,113 +23,146 @@ use std::{
     }
 };
 
+use crate::server::worker::{
+    Worker,
+    WorkerResult,
+};
+
 // for test use
 #[allow(unused)]
 use std::ops::{Deref, DerefMut, Add, Sub};
 use std::cmp::{PartialOrd};
 
-use crate::server::worker::{
-    WorkerTrait,
-    Worker,
-    Report,
-};
-
-pub struct ClockWorker {
-    pub workers: Arc<Mutex<Vec<(u128, u128, Worker<Report>)>>>,
-    // task has (counter, frecquency, Worker)
-    instructor: Worker<LinkedList<(usize, Report)>>,
-    // if tasks occure error, instructor report set of (task_id, task_error).
+pub struct LazyWorker {
+    counter: u128,
+    threshold: u128,
+    worker: Arc<Worker>,
 }
-
-impl ClockWorker {
-    fn new() -> Self {
-        let timer = Arc::new(Mutex::new(Instant::now()));
-        let workers = Arc::new(Mutex::new(vec![]));
-        let workers_clone = workers.clone();
+pub struct WorkersConductor {
+    // FIXME too big overhead. bad precise
+    latest: Mutex<Option<Instant>>,
+    workers: Mutex<Vec<LazyWorker>>,
+}
+pub enum ConductorOrder {
+    Stop,
+}
+impl LazyWorker {
+    pub fn new_with_worker(thres: u128, wok: Worker) -> Self {
         Self {
-            workers: workers,
-            instructor: Worker::<LinkedList::<(usize, Report)>>::do_while_stop_with_recovery(
-                "ClockWorker's timer",
-                Box::new(move || {
-                    let count = timer.lock().unwrap().elapsed().as_millis();
-                    for work in workers_clone.lock().unwrap().iter_mut() {
-                        work.0 += count;
-                        if work.0 > work.1 {
-                            work.0 -= work.1;
-                            work.2.once().unwrap();
-                        }
-                    }
-                    let mut ret = LinkedList::new();
-                    // wait all tasks result.
-                    
-                    for (i, work) in workers_clone.lock().unwrap().iter_mut().enumerate() {
-                        match work.2.timeout_receive() {
-                            Some(report) => {
-                                ret.push_back((i, report));
-                            },
-                            None => {
-                                ret.push_back((i, Report::Timeout));
-                            }
-                        }
-                    }
-
-                    ret
-                }),
-                Box::new( move | sender | {
-                    Box::new( move | reports | {
-                        for report in reports.iter() {
-                            match report {
-                                (index, Report::Success) => {
-                                    println!("in thread{} Success thread", index);
-                                },
-                                (index, Report::Timeout) => {
-                                    println!("in thread{} General error occures", index);
-                                },
-                                (index, Report::CritError) => {
-                                    println!("in thread{} Critical error occures", index);
-                                },
-                                (index, Report::GeneError) => {
-                                    println!("in thread{} Timeout", index);
-                                },
-                            }
-                        }
-                    })
-                }),
-            ),
+            counter: 0,
+            threshold: thres,
+            worker: Arc::new(wok),
         }
+    }
+    pub fn new(thres: u128, task: Box<dyn Fn() -> WorkerResult + Send + Sync>, sender: SyncSender<String>) -> Self {
+        Self::new_with_worker(thres, Worker::new(task, sender))
+    }
+    pub fn update(&mut self, count: u128) {
+        self.counter += count;
+        if self.counter > self.threshold {
+            let task_ptr = self.worker.clone();
+            thread::Builder::new().name("Lazy task".to_string()).spawn(move || {
+                task_ptr.run();
+            });
+            self.counter -= self.threshold;
+        }
+    }
+}
+impl WorkersConductor {
+    fn new() -> Self {
+        Self {
+            latest: Mutex::new(None),
+            workers: Mutex::new(vec![]),
+        }
+    }
+    fn update(self: Arc<Self>) {
+        let diff = self.update_and_get_diff();
+        for worker in &mut *self.workers.lock().unwrap() {
+            worker.update(diff);
+        }
+    }
+    fn push(self: &Arc<Self>, worker: LazyWorker) {
+        self.workers.lock().unwrap().push(worker)
+    }
+
+    pub fn start(self: &Arc<Self>) -> Sender<ConductorOrder> {
+        let mut timer_ptr = self.latest.lock().unwrap();
+        if let Some(_) = *timer_ptr {
+            panic!("timer haves already started");
+        };
+        let (sender, receiver) = channel();
+        let self_clone = self.clone();
+        *timer_ptr = Some(Instant::now());
+
+        thread::Builder::new()
+            .name("Worker conductor thread".to_string()).spawn(move || {
+                loop {
+                    match receiver.try_recv() {
+                        Ok(ConductorOrder::Stop) => {
+                            println!("Timer stop!");
+                            break;
+                        },
+                        _ => {},
+                    };
+                    self_clone.clone().update();
+                    thread::sleep(Duration::from_millis(20));
+                    
+                }
+            });
+        sender
+    }
+    fn update_and_get_diff(self: &Arc<Self>) -> u128 {
+        let ret = self.latest.lock().unwrap().unwrap().elapsed().as_millis();
+        let ret = match *self.latest.lock().unwrap() {
+            Some(t) => t.elapsed().as_millis(),
+            None => { panic!("timer is not started"); },
+        };
+        *self.latest.lock().unwrap() = Some(Instant::now());
+        ret
     }
 }
 
 #[test]
-fn clock_worker_test() {
-    let mut clock_worker = ClockWorker::new();
-    let counter = Arc::new(Mutex::new(0));
-    clock_worker.workers.lock().unwrap().push(
-        (100, 0, Worker::do_while_stop_with_recovery(
-                "thread for clock_worker_test",
-                Box::new(move || {
-                    let ptr: &mut i32  = &mut *counter.lock().unwrap();
-                    *ptr += 1;
-                    thread::sleep(Duration::from_millis(10));
-                    match *ptr % 4 {
-                        0 => Report::Success,
-                        1 => Report::CritError,
-                        2 => Report::GeneError,
-                        3 => Report::Success,
-                        _ => {
-                            panic!("Error occures");
-                        }
-                    }
-                }),
-                Box::new(move | sender | {
-                    Box::new(move | report | {
-                        sender.send(report);
-                    })
-                }),
-        )));
-    thread::sleep(Duration::from_millis(1000));
+fn timer_test() {
+    let workers_conductor = Arc::new(WorkersConductor::new());
+    let (sender, receiver) = sync_channel(16);
+    
+    let task1_counter = Arc::new(Mutex::new(0));
+    let task2_counter = Arc::new(Mutex::new(0));
 
-    panic!();
+    let ltask1 = {
+        let counter = task1_counter.clone();
+        LazyWorker::new(
+            100,
+            Box::new(move || {
+                println!("TASK1");
+                *counter.lock().unwrap() += 1;
+                WorkerResult::Complete
+            }),
+            sender.clone()
+        )
+    };
+    let ltask2 = {
+        let counter = task2_counter.clone();
+        LazyWorker::new(
+            100,
+            Box::new(move || {
+                println!("TASK2");
+                *counter.lock().unwrap() += 1;
+                WorkerResult::Complete
+            }),
+            sender.clone()
+        )
+    };
+
+    workers_conductor.push(ltask1);
+    workers_conductor.push(ltask2);
+
+    let conductor_sender = workers_conductor.start();
+    thread::sleep(Duration::from_millis(550));
+
+    assert_eq!(*task1_counter.lock().unwrap(), *task2_counter.lock().unwrap());
+    assert_eq!(5, *task2_counter.lock().unwrap());
 }
 
 
