@@ -15,6 +15,9 @@ use std::{
     sync::{
         Arc,
         Mutex,
+        mpsc::{
+            sync_channel,
+        },
     },
     thread,
 };
@@ -39,9 +42,10 @@ fn server_tester() {
     {
         let test_data = test_data.clone();
         let map_string = map_string.clone();
+        let (s, _) = sync_channel(0);
         let server_test = thread::spawn(move || {
             let inner_test = thread::spawn(move || {
-                let mut g = GameController::new(game::Game::new(MapInfo::build_by_string(map_string.to_string()), 1));
+                let mut g = GameController::new(game::Game::new(MapInfo::build_by_string(map_string.to_string()), 1), s);
                 g.server_flow_tmp();
             });
 

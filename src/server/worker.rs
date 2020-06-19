@@ -44,7 +44,7 @@ impl Worker {
         match (self.task)() {
             WorkerResult::Complete => {
                 // Complate task
-                println!("Complete task");
+                //println!("Complete task");
             },
             WorkerResult::Pollution(message) => {
                 // Worker detect critical damage to instance.

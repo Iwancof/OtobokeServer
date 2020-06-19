@@ -15,6 +15,9 @@ use std::{
         mpsc,
         Arc,
         Mutex,
+        mpsc::{
+            SyncSender,
+        },
     },
     thread,
 };
@@ -26,7 +29,10 @@ use crate::{
     map::{
         self,
         GameClient,
-    }
+    },
+    time::{
+        WorkerConductor,
+    },
 };
 
 use super::{
@@ -39,12 +45,13 @@ use super::{
 };
 
 impl GameController {
-    pub fn new(game: Game) -> GameController {
+    pub fn new(game: Game, snd: SyncSender<String>) -> GameController {
         GameController{
             player_limit: game.number_of_player,
             game: Arc::new(Mutex::new(game)),
             timer: LoopTimer::new(),
             comn_prov: Arc::new(Mutex::new(CommunicationProvider::new())),
+            conduc: WorkerConductor::new(snd),
         }
     }
     

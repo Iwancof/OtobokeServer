@@ -23,6 +23,11 @@ use map::MapInfo;
 use std::sync::{
     Arc,
     Mutex,
+    mpsc::{
+        Sender,
+        Receiver,
+        sync_channel,
+    }
 };
 use server::{
     communication::{
@@ -33,9 +38,8 @@ use server::{
 
 fn main() {
     println!("OTOBOKE SERVER STARTING NOW!!");
-    
-    let front_port = 5522;
-    let ports = vec![5523, 5524, 5525];
+
+    let (snd, rcv) = sync_channel(16);
 
     let args: Vec<String> = env::args().collect();
     let mut map_path = args[0].trim_matches(|c| c != '\\').to_string();
@@ -51,7 +55,7 @@ fn main() {
     let mut game = game::Game::new(map, player_number);
     // make instance with map and number.
 
-    let mut g = server::GameController::new(game);
+    let mut g = server::GameController::new(game, snd);
     // make server call GameController
 
     g.server_flow_tmp();

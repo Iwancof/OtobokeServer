@@ -10,9 +10,14 @@ use std::{
     sync::{
         Arc,
         Mutex,
+        atomic::{
+            AtomicBool,
+            Ordering,
+        },
         mpsc::{
             channel,
             Sender,
+            Receiver,
             SyncSender,
             sync_channel,
         }
@@ -33,137 +38,73 @@ use crate::server::worker::{
 use std::ops::{Deref, DerefMut, Add, Sub};
 use std::cmp::{PartialOrd};
 
-pub struct LazyWorker {
-    counter: u128,
-    threshold: u128,
-    worker: Arc<Worker>,
-}
-pub struct WorkersConductor {
-    // FIXME too big overhead. bad precise
-    latest: Mutex<Option<Instant>>,
-    workers: Mutex<Vec<LazyWorker>>,
-}
-pub enum ConductorOrder {
-    Stop,
-}
-impl LazyWorker {
-    pub fn new_with_worker(thres: u128, wok: Worker) -> Self {
-        Self {
-            counter: 0,
-            threshold: thres,
-            worker: Arc::new(wok),
+fn run_worker_async(worker: Worker, span: Duration, flag: Arc<AtomicBool>) {
+    thread::Builder::new().name("run_worker_async methot".to_string()).spawn(move || {
+        loop {
+            if flag.load(Ordering::Relaxed) == false {
+                // stoping
+                continue;
+            }
+            worker.run(); // ignore worker's time.
+            thread::sleep(span);
         }
-    }
-    pub fn new(thres: u128, task: Box<dyn Fn() -> WorkerResult + Send + Sync>, sender: SyncSender<String>) -> Self {
-        Self::new_with_worker(thres, Worker::new(task, sender))
-    }
-    pub fn update(&mut self, count: u128) {
-        self.counter += count;
-        if self.counter > self.threshold {
-            let task_ptr = self.worker.clone();
-            thread::Builder::new().name("Lazy task".to_string()).spawn(move || {
-                task_ptr.run();
-            });
-            self.counter -= self.threshold;
-        }
-    }
+    }).unwrap();
 }
-impl WorkersConductor {
-    fn new() -> Self {
-        Self {
-            latest: Mutex::new(None),
-            workers: Mutex::new(vec![]),
-        }
-    }
-    fn update(self: Arc<Self>) {
-        let diff = self.update_and_get_diff();
-        for worker in &mut *self.workers.lock().unwrap() {
-            worker.update(diff);
-        }
-    }
-    fn push(self: &Arc<Self>, worker: LazyWorker) {
-        self.workers.lock().unwrap().push(worker)
-    }
 
-    pub fn start(self: &Arc<Self>) -> Sender<ConductorOrder> {
-        let mut timer_ptr = self.latest.lock().unwrap();
-        if let Some(_) = *timer_ptr {
-            panic!("timer haves already started");
-        };
-        let (sender, receiver) = channel();
-        let self_clone = self.clone();
-        *timer_ptr = Some(Instant::now());
-
-        thread::Builder::new()
-            .name("Worker conductor thread".to_string()).spawn(move || {
-                loop {
-                    match receiver.try_recv() {
-                        Ok(ConductorOrder::Stop) => {
-                            println!("Timer stop!");
-                            break;
-                        },
-                        _ => {},
-                    };
-                    self_clone.clone().update();
-                    thread::sleep(Duration::from_millis(20));
-                    
-                }
-            });
-        sender
+pub struct WorkerConductor {
+    worker_sender: SyncSender<String>, // worker to system.
+    start_flag: Arc<AtomicBool>,
+}
+impl WorkerConductor {
+    pub fn new(sys_sender: SyncSender<String>) -> Self {
+        Self {
+            worker_sender: sys_sender,
+            start_flag: Arc::new(AtomicBool::new(false)),
+        }
     }
-    fn update_and_get_diff(self: &Arc<Self>) -> u128 {
-        let ret = self.latest.lock().unwrap().unwrap().elapsed().as_millis();
-        let ret = match *self.latest.lock().unwrap() {
-            Some(t) => t.elapsed().as_millis(),
-            None => { panic!("timer is not started"); },
-        };
-        *self.latest.lock().unwrap() = Some(Instant::now());
-        ret
+    pub fn add_worker(&self, worker: Worker, span: Duration) {
+        run_worker_async(worker, span, self.start_flag.clone());
+    }
+    pub fn add_task(&self, task: Box<dyn Fn() -> WorkerResult + Send + Sync>, span: Duration) {
+        self.add_worker(Worker::new(task, self.worker_sender.clone()), span);
+    }
+    pub fn start(&self) {
+        self.start_flag.store(true, Ordering::Relaxed);
+    }
+    pub fn stop(&self) {
+        self.start_flag.store(false, Ordering::Relaxed);
     }
 }
 
 #[test]
-fn timer_test() {
-    let workers_conductor = Arc::new(WorkersConductor::new());
-    let (sender, receiver) = sync_channel(16);
-    
+fn timer_worker_test() {
+    let (ss, rc) = sync_channel(16);
+    let cond = WorkerConductor::new(ss);
+
     let task1_counter = Arc::new(Mutex::new(0));
+    let cnt = task1_counter.clone();
+    
+    cond.add_task(Box::new(move || {
+        *cnt.lock().unwrap() += 1;
+        WorkerResult::Complete
+    }), Duration::from_millis(100));
+
     let task2_counter = Arc::new(Mutex::new(0));
+    let cnt = task2_counter.clone();
+    
+    cond.add_task(Box::new(move || {
+        *cnt.lock().unwrap() += 1;
+        WorkerResult::Complete
+    }), Duration::from_millis(50));
 
-    let ltask1 = {
-        let counter = task1_counter.clone();
-        LazyWorker::new(
-            100,
-            Box::new(move || {
-                println!("TASK1");
-                *counter.lock().unwrap() += 1;
-                WorkerResult::Complete
-            }),
-            sender.clone()
-        )
-    };
-    let ltask2 = {
-        let counter = task2_counter.clone();
-        LazyWorker::new(
-            100,
-            Box::new(move || {
-                println!("TASK2");
-                *counter.lock().unwrap() += 1;
-                WorkerResult::Complete
-            }),
-            sender.clone()
-        )
-    };
+    cond.start();
+    thread::sleep(Duration::from_millis(1000));
+    cond.stop();
 
-    workers_conductor.push(ltask1);
-    workers_conductor.push(ltask2);
-
-    let conductor_sender = workers_conductor.start();
-    thread::sleep(Duration::from_millis(550));
-
-    assert_eq!(*task1_counter.lock().unwrap(), *task2_counter.lock().unwrap());
-    assert_eq!(5, *task2_counter.lock().unwrap());
+    assert_eq!(2 * *task1_counter.lock().unwrap(), *task2_counter.lock().unwrap());
+    assert!(*task1_counter.lock().unwrap() != 0);
 }
+
 
 
 pub struct LoopTimerUnArc {

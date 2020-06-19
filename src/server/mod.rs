@@ -34,7 +34,10 @@ use communication::{
 
 use crate::{
     game::Game,
-    time::LoopTimer,
+    time::{
+        LoopTimer,
+        WorkerConductor,
+    }
 };
 
 
@@ -43,6 +46,7 @@ pub struct GameController {
     pub player_limit: usize,
     pub game: Arc<Mutex<Game>>,
     pub timer: LoopTimer, //This is doing tasks per the time
+    pub conduc: WorkerConductor,
 }
 
 
