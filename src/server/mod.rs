@@ -1,10 +1,8 @@
 
-mod front;
-mod game_parents;
-pub mod server_interface;
-mod server_utils;
+mod game_control;
+pub mod api;
+mod internal_procs;
 pub mod communication;
-mod data_factory;
 pub mod worker;
 mod test;
 

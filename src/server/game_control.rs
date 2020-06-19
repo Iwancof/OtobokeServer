@@ -30,16 +30,6 @@ impl GameController {
         let clone_game_for_announce_pac_coordinate = self.game.clone();
         let clone_game_for_announce_bait_info = self.game.clone();
 
-        /*
-        self.timer.subscribe(Box::new(move || { //Per 0.2 seconds, Program executes this closure.
-            clone_game_for_announce_pac_coordinate.lock().unwrap().move_pacman_wrap();
-            let msg = clone_game_for_announce_pac_coordinate.lock().unwrap().coordinate_to_json_pacman();
-                //Pacman coordinate convert to json here.
-            clone_clients_for_announce_pac_coordinate.lock().unwrap().send(msg);
-        }),
-        200 //Time span
-        );
-        */
         self.conduc.add_task(Box::new(move || {
             clone_game_for_announce_pac_coordinate.lock().unwrap().move_pacman_wrap();
             let msg = clone_game_for_announce_pac_coordinate.lock().unwrap().coordinate_to_json_pacman();

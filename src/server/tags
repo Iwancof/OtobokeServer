@@ -12,39 +12,32 @@ CommunicationProvider	communication.rs	/^impl CommunicationProvider {$/;"	c
 CommunicationProvider	communication.rs	/^impl CommunicationProviderTrait for CommunicationProvider {$/;"	c
 CommunicationProvider	communication.rs	/^pub struct CommunicationProvider {$/;"	s
 CommunicationProviderTrait	communication.rs	/^pub trait CommunicationProviderTrait {$/;"	i
-CritError	worker.rs	/^    CritError,$/;"	e	enum:Report
-Destory	worker.rs	/^    Destory,$/;"	e	enum:Order
+Complete	worker.rs	/^    Complete,  \/\/ Not system damage(may be error but not catch. use shared pointer)$/;"	e	enum:WorkerResult
 GameController	communication.rs	/^impl GameController {$/;"	c
 GameController	game_parents.rs	/^impl GameController {$/;"	c
 GameController	mod.rs	/^pub struct GameController {$/;"	s
 GameController	server_interface.rs	/^impl GameController {$/;"	c
 GameController	server_utils.rs	/^impl Drop for GameController {$/;"	c
 GameController	server_utils.rs	/^impl GameController {$/;"	c
-GeneError	worker.rs	/^    GeneError,$/;"	e	enum:Report
-OResult	worker.rs	/^type OResult = Result<(), SendError<Order>>;$/;"	t
-Order	worker.rs	/^enum Order {$/;"	g
+Pollution	worker.rs	/^    Pollution(String), \/\/ System damage $/;"	e	enum:WorkerResult
 ProviderResult	communication.rs	/^type ProviderResult = Result<usize, std::io::Error>;$/;"	t
-Report	worker.rs	/^enum Report {$/;"	g
-Restart	worker.rs	/^    Restart,$/;"	e	enum:Order
-Success	worker.rs	/^    Success,$/;"	e	enum:Report
-Suspend	worker.rs	/^    Suspend,$/;"	e	enum:Order
 Worker	worker.rs	/^impl Worker {$/;"	c
-Worker	worker.rs	/^struct Worker {$/;"	s
-WorkerTrait	worker.rs	/^trait WorkerTrait$/;"	i
+Worker	worker.rs	/^pub struct Worker {$/;"	s
+WorkerResult	worker.rs	/^pub enum WorkerResult {$/;"	g
 accept_client_stream	server_utils.rs	/^    pub fn accept_client_stream(&self, mut stream: net::TcpStream) {$/;"	P	implementation:GameController
 announce_wrap	communication.rs	/^    pub fn announce_wrap(&self, msg: String){$/;"	P	implementation:GameController
 clients_count	communication.rs	/^    pub fn clients_count(&self) -> usize {$/;"	P	implementation:CommunicationProvider
 clients_reader	communication.rs	/^    clients_reader: Vec<Arc<Mutex<BufReader<TcpStream>>>>, $/;"	m	struct:CommunicationProvider
 clients_writer	communication.rs	/^    clients_writer: Vec<Arc<Mutex<BufWriter<TcpStream>>>>, $/;"	m	struct:CommunicationProvider
 communication	mod.rs	/^pub mod communication;$/;"	n
-comn_prov	mod.rs	/^    pub comn_prov: Arc<Mutex<CommunicationProvider>>,$/;"	m	struct:GameController
+comn_prov	mod.rs	/^    comn_prov: Arc<Mutex<CommunicationProvider>>,$/;"	m	struct:GameController
+conduc	mod.rs	/^    conduc: WorkerConductor,$/;"	m	struct:GameController
 data_factory	mod.rs	/^mod data_factory;$/;"	n
-destory	worker.rs	/^    fn destory(&self) -> OResult {$/;"	P	interface:WorkerTrait
 distribute_map	game_parents.rs	/^    pub(super) fn distribute_map(&mut self) {$/;"	P	implementation:GameController
-do_while_stop_with_recovery	worker.rs	/^    fn do_while_stop_with_recovery($/;"	P	implementation:Worker
 drop	server_utils.rs	/^    fn drop(&mut self) {$/;"	P	implementation:GameController
+end_game	mod.rs	/^    end_game: bool,$/;"	m	struct:GameController
 front	mod.rs	/^mod front;$/;"	n
-game	mod.rs	/^    pub game: Arc<Mutex<Game>>,$/;"	m	struct:GameController
+game	mod.rs	/^    game: Arc<Mutex<Game>>,$/;"	m	struct:GameController
 game_initialize	game_parents.rs	/^    pub(super) fn game_initialize(&mut self) {$/;"	P	implementation:GameController
 game_parents	mod.rs	/^mod game_parents;$/;"	n
 get_buf_reader_at	communication.rs	/^    fn get_buf_reader_at(&self, index: usize) -> Arc<Mutex<BufReader<TcpStream>>> {$/;"	P	implementation:CommunicationProvider
@@ -55,19 +48,18 @@ get_buffer_at	communication.rs	/^    fn get_buffer_at(&self, index: usize) -> St
 join_client_stream	server_utils.rs	/^    pub fn join_client_stream(&self, stream: net::TcpStream) {$/;"	P	implementation:GameController
 network_buffer	communication.rs	/^    network_buffer : Vec<Arc<Mutex<String>>>,$/;"	m	struct:CommunicationProvider
 new	communication.rs	/^    pub fn new() -> Self {$/;"	P	implementation:CommunicationProvider
-new	server_utils.rs	/^    pub fn new(game: Game) -> GameController {$/;"	P	implementation:GameController
-order	worker.rs	/^    fn order(&self, o: Order) -> OResult; \/\/ Out of thread -> Worker (Order)$/;"	P	interface:WorkerTrait
-order_sender	worker.rs	/^    order_sender: Sender<Order>,$/;"	m	struct:Worker
+new	server_utils.rs	/^    pub fn new(game: Game, snd: SyncSender<String>) -> GameController {$/;"	P	implementation:GameController
+new	worker.rs	/^    pub fn new(task: Box<dyn Fn() -> WorkerResult + Send + Sync>, instance_sender: SyncSender<St/;"	P	implementation:Worker
 parse_client_info	communication.rs	/^    pub(super) fn parse_client_info(msg: String) -> Vec<f32> {$/;"	P	implementation:GameController
 player_info_initialize_in_map	server_utils.rs	/^    pub(super) fn player_info_initialize_in_map(&self) {$/;"	P	implementation:GameController
-player_limit	mod.rs	/^    pub player_limit: usize,$/;"	m	struct:GameController
-print_typename	server_utils.rs	/^pub fn print_typename<T>(_: T) {$/;"	f
+player_limit	mod.rs	/^    player_limit: usize,$/;"	m	struct:GameController
 push_client	communication.rs	/^    pub fn push_client(&mut self, stream: TcpStream, def_str: String) {$/;"	P	implementation:CommunicationProvider
 read_by_buffer	communication.rs	/^pub fn read_by_buffer(bs: Arc<Mutex<BufReader<TcpStream>>>) -> String {$/;"	f
 read_stream_buffer_at	communication.rs	/^    fn read_stream_buffer_at(&self, index: usize) -> String {$/;"	P	implementation:Arc
 read_stream_buffer_at	communication.rs	/^    fn read_stream_buffer_at(&self, index: usize) -> String {$/;"	P	implementation:CommunicationProvider
 read_stream_buffer_at	communication.rs	/^    fn read_stream_buffer_at(&self, index: usize) -> String;$/;"	P	interface:CommunicationProviderTrait
-receive	worker.rs	/^    fn receive(&self) -> Option<Report>;  \/\/ Worker -> Out of thread (Report)$/;"	P	interface:WorkerTrait
+report	worker.rs	/^    fn report(&self, msg: String) -> ! {$/;"	P	implementation:Worker
+run	worker.rs	/^    pub fn run(&self) {$/;"	P	implementation:Worker
 send	communication.rs	/^    fn send(&self, msg: String) -> ProviderResult {$/;"	P	interface:CommunicationProviderTrait
 send_bytes	communication.rs	/^    fn send_bytes(&self, msg: &[u8]) -> ProviderResult {$/;"	P	implementation:Arc
 send_bytes	communication.rs	/^    fn send_bytes(&self, msg: &[u8]) -> ProviderResult {$/;"	P	implementation:CommunicationProvider
@@ -75,7 +67,9 @@ send_bytes	communication.rs	/^    fn send_bytes(&self, msg: &[u8]) -> ProviderRe
 send_data_with_tag_and_data	communication.rs	/^    fn send_data_with_tag_and_data<T: Serialize>(&self, tag: &str, name: &str, obj: &T) -> Provi/;"	P	interface:CommunicationProviderTrait
 send_data_with_tag_and_string	communication.rs	/^    fn send_data_with_tag_and_string(&self, tag: &str, data: String) -> ProviderResult {$/;"	P	interface:CommunicationProviderTrait
 send_data_with_tag_and_vec_data	communication.rs	/^    fn send_data_with_tag_and_vec_data<T: Serialize>(&self, tag: &str, name: &str, obj: &Vec<T>)/;"	P	interface:CommunicationProviderTrait
+send_to_logger	worker.rs	/^    send_to_logger: SyncSender<String>,$/;"	m	struct:Worker
 server_flow_tmp	server_interface.rs	/^    pub fn server_flow_tmp(&mut self) {$/;"	P	implementation:GameController
+server_flow_to_test	server_interface.rs	/^    pub fn server_flow_to_test(&mut self) {$/;"	P	implementation:GameController
 server_interface	mod.rs	/^pub mod server_interface;$/;"	n
 server_tester	test.rs	/^fn server_tester() {$/;"	f
 server_utils	mod.rs	/^mod server_utils;$/;"	n
@@ -86,10 +80,11 @@ set_communication_provider_to_map_proc	game_parents.rs	/^    pub(super) fn set_c
 show_game_details	server_interface.rs	/^    pub fn show_game_details(&self) {$/;"	P	implementation:GameController
 start_game	server_interface.rs	/^    pub fn start_game(&mut self) {$/;"	P	implementation:GameController
 start_reading_coordinate	communication.rs	/^    pub(super) fn start_reading_coordinate(&self) {$/;"	P	implementation:GameController
-suspend	worker.rs	/^    fn suspend(&self) -> OResult {$/;"	P	interface:WorkerTrait
-task_report	worker.rs	/^    task_report: Receiver<Report>,$/;"	m	struct:Worker
+stop	server_interface.rs	/^    pub fn stop(&mut self) {$/;"	P	implementation:GameController
+task	worker.rs	/^    task: Box<dyn Fn() -> WorkerResult + Send + Sync>,$/;"	m	struct:Worker
 test	mod.rs	/^mod test;$/;"	n
-timer	mod.rs	/^    pub timer: LoopTimer, \/\/This is doing tasks per the time$/;"	m	struct:GameController
 wait_and_prepare_communication	server_utils.rs	/^    pub(super) fn wait_and_prepare_communication(&mut self) {$/;"	P	implementation:GameController
-wait_until_clients_connection	server_utils.rs	/^    pub(super) fn wait_until_clients_connection(&mut self) {$/;"	P	implementation:GameController
-worker	mod.rs	/^mod worker;$/;"	n
+wait_until_clients_connection	server_utils.rs	/^    pub(super) fn wait_until_clients_connection(&mut self, address: &str) {$/;"	P	implementation:GameController
+worker	mod.rs	/^pub mod worker;$/;"	n
+worker_fail_test	worker.rs	/^fn worker_fail_test() {$/;"	f
+worker_success_test	worker.rs	/^fn worker_success_test() {$/;"	f

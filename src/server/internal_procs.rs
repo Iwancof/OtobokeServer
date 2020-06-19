@@ -120,7 +120,6 @@ impl GameController {
             println!("The game can start");
         }
     }
-
 }
 
 impl Drop for GameController {

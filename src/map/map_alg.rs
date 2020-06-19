@@ -111,7 +111,7 @@ impl MapProcAsGame { // for AI
                 //println!("able {}", *e);
             }
 
-            // TODO: except before_change_pos.
+            // TODO: exculude before_change_pos.
             let result: Vec<(QuanCoord, f64)>= movable_next_points.iter().
                 map(|x| (*x, self.evaluate_at(*x))).collect();
             // Convert to tuple(coord, score).
@@ -209,7 +209,7 @@ impl MapProcAsGame { // for AI
     }
     /// posでの移動評価関数
     fn evaluate_at(&mut self, pos: QuanCoord) -> f64 {
-        //see, "パックマンの動き" om https://hackmd.io/VP2HVfw-Rc2COcPSKJQymQ?both 
+        //see, "パックマンの動き" on https://hackmd.io/VP2HVfw-Rc2COcPSKJQymQ?both 
         let mut attractive_score: f64 = 0.;
         for y in 0..self.map.height {
             for x in 0..self.map.width {

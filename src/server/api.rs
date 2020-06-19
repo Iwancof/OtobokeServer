@@ -24,7 +24,7 @@ impl GameController {
         self.show_game_details();
         println!("Game initialized");
 
-        self.wait_until_clients_connection("192.168.1.7");
+        self.wait_until_clients_connection("192.168.1.7:5522");
         // wait players
 
         self.game_initialize();
@@ -60,28 +60,11 @@ impl GameController {
         let cloned_game = self.game.clone();
         let cloned_prov = self.comn_prov.clone();
         let client_count = self.player_limit;
-
-        /*
-        self.timer.subscribe(Box::new(move || {
-            for i in 0..client_count {
-                let player_lastest_message = cloned_prov_network_buf.get_buffer_at(i);
-                // get lastest player info
-                //println!("\x1b[10;0Hclient[{}] at {}",i,&player_lastest_message);
-
-                let parse_result = Self::parse_client_info(player_lastest_message);
-                if parse_result.len() == 3 {
-                    cloned_game.lock().unwrap().update_coordinate(i, parse_result);
-                }
-            };
-            let mut received_data = cloned_game.lock().unwrap().coordinate_to_json();
-            cloned_prov.send(received_data);
-        }), 50);
-        */
+        
         self.conduc.add_task(Box::new(move || {
             for i in 0..client_count {
                 let player_lastest_message = cloned_prov_network_buf.get_buffer_at(i);
                 // get lastest player info
-                //println!("\x1b[10;0Hclient[{}] at {}",i,&player_lastest_message);
 
                 let parse_result = Self::parse_client_info(player_lastest_message);
                 if parse_result.len() == 3 {
@@ -108,5 +91,4 @@ impl GameController {
         self.end_game = true;
         self.conduc.stop();
     }
-
 }
