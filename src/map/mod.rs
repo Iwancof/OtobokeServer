@@ -41,6 +41,7 @@ pub const PACMAN_POWERED_TIME: f64 = 8.0; // 8 sec
 
 
 /// 純粋なマップ情報
+#[derive(Clone)]
 pub struct MapInfo {
     pub width: usize,
     pub height: usize,

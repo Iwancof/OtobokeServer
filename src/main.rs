@@ -31,9 +31,11 @@ use server::{
     },
 };
 
-fn main() { //For one game
-    println!("\x1b[2J");
-    println!("\x1b[0;0H");
+fn main() {
+    println!("OTOBOKE SERVER STARTING NOW!!");
+    
+    let front_port = 5522;
+    let ports = vec![5523, 5524, 5525];
 
     let args: Vec<String> = env::args().collect();
     let mut map_path = args[0].trim_matches(|c| c != '\\').to_string();

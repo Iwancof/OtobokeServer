@@ -41,7 +41,7 @@ use super::{
 impl GameController {
     pub fn new(game: Game) -> GameController {
         GameController{
-            player_limit: game. number_of_player,
+            player_limit: game.number_of_player,
             game: Arc::new(Mutex::new(game)),
             timer: LoopTimer::new(),
             comn_prov: Arc::new(Mutex::new(CommunicationProvider::new())),
