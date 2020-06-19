@@ -46,34 +46,85 @@ impl MapProcAsGame { // for AI
         }
     }
 
-    // Easy AI
-    /// パックマンを一回動かす関数
-    pub fn move_pacman(&mut self) {
+    /// パワー餌を食べたパックマンを一回動かす関数
+    pub fn move_powered_pacman(&mut self) {
         let movable_next_points = self.map.get_can_move_on(self.pacman);
+        let target_player_coord = self.players[self.search_near_player_idx()].coord;
+
         if !self.pm_inferpoints.exist_in(self.pacman) {
-            // not on a infer point.
             let next = self.routed_next_point(movable_next_points);
             self.move_to(next);
             return;
         }
-
         for e in &movable_next_points {
             //println!("able {}", *e);
         }
 
-        // TODO: except before_change_pos.
-        let result: Vec<(QuanCoord, f64)>= movable_next_points.iter().
-            map(|x| (*x, self.evaluate_at(*x))).collect();
-            // Convert to tuple(coord, score).
-        let (mut max_value, mut max_index) = (-10000., 0);
+        // 移動できる方向について移動したあとのプレイヤーとの距離を計算
+        let result: Vec<(QuanCoord, f32)> = movable_next_points.iter().
+            map(|x| (*x, QuanCoord::dist(target_player_coord, *x))).collect();
+
+        let (mut min_value, mut min_index) = (10000., 0);
         for (i, e) in result.iter().enumerate() {
-            if max_value < e.1 {
-                max_value = e.1;
-                max_index = i;
+            if min_value > e.1 {
+                min_value = e.1;
+                min_index = i;
             }
         }
         //println!("result is {:?}", result[max_index]);
-        self.move_to(result[max_index].0).expect("move to wall");
+        self.move_to(result[min_index].0).expect("move to wall");
+    }
+
+    /// パックマンから最も近いプレイヤーのインデックスを返す関数
+    fn search_near_player_idx(&self) -> usize {
+        let mut near: (f32, usize) = (1000., 0);
+        for (i, client) in self.players.iter().enumerate() {
+            let player = client.coord;
+            let dist = QuanCoord::dist(self.pacman, player);
+            if dist < near.0 {
+                near = (dist, i);
+            }
+        }
+        near.1
+    }
+
+    // Easy AI
+    /// パックマンを一回動かす関数
+    pub fn move_pacman(&mut self) {
+        let mut powered = false;
+        match self.pm_state.lock().unwrap().clone() {
+            PMState::Powered(_) => powered = true,
+            _ => powered = false,
+        }
+        if powered {
+            self.move_powered_pacman();
+        } else {
+            let movable_next_points = self.map.get_can_move_on(self.pacman);
+            if !self.pm_inferpoints.exist_in(self.pacman) {
+                // not on a infer point.
+                let next = self.routed_next_point(movable_next_points);
+                self.move_to(next);
+                return;
+            }
+
+            for e in &movable_next_points {
+                //println!("able {}", *e);
+            }
+
+            // TODO: except before_change_pos.
+            let result: Vec<(QuanCoord, f64)>= movable_next_points.iter().
+                map(|x| (*x, self.evaluate_at(*x))).collect();
+            // Convert to tuple(coord, score).
+            let (mut max_value, mut max_index) = (-10000., 0);
+            for (i, e) in result.iter().enumerate() {
+                if max_value < e.1 {
+                    max_value = e.1;
+                    max_index = i;
+                }
+            }
+            //println!("result is {:?}", result[max_index]);
+            self.move_to(result[max_index].0).expect("move to wall");
+        }
     }
     /// パックマンを指定の座標まで一回で移動させる。テレポートなども考慮される
     pub fn move_to(&mut self, coord: QuanCoord) -> Result<QuanCoord, QuanCoord>{
