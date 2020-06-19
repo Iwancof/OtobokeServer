@@ -24,7 +24,7 @@ impl GameController {
         self.show_game_details();
         println!("Game initialized");
 
-        self.wait_until_clients_connection();
+        self.wait_until_clients_connection("192.168.1.7");
         // wait players
 
         self.game_initialize();
@@ -37,6 +37,14 @@ impl GameController {
 
         self.start_game();
         // start!
+    }
+    pub fn server_flow_to_test(&mut self) {
+        self.wait_until_clients_connection("127.0.0.1:5522");
+        self.game_initialize();
+        self.distribute_map();
+        self.wait_and_prepare_communication();
+        
+        self.announce_wrap("THIS IS TEST MESSAGE|".to_string());
     }
 
     pub fn show_game_details(&self) {
@@ -96,7 +104,7 @@ impl GameController {
             }
         }
     }
-    fn stop(&mut self) {
+    pub fn stop(&mut self) {
         self.end_game = true;
         self.conduc.stop();
     }

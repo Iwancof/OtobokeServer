@@ -59,7 +59,9 @@ impl GameController {
         self.announce_wrap(map_data);
         self.announce_wrap(
             r#"{"value":""#.to_string() + &(self.player_limit.to_string()) + r#""}|"#);
-        println!("map disributed");
+        if !cfg!(test) {
+            println!("map disributed");
+        }
     }
 
 }

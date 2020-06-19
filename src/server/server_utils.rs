@@ -54,14 +54,13 @@ impl GameController {
         }
     }
     
-    pub(super) fn wait_until_clients_connection(&mut self) {
-        //let address = "2400:4051:99c2:58f0:11a4:53a7:248:a471:5522";
-        //let address = "192.168.1.7:5522";
-        let address = "192.168.1.7:5522";
+    pub(super) fn wait_until_clients_connection(&mut self, address: &str) {
         let listener = net::TcpListener::bind(address).unwrap(); //Create Listener
         let mut count = 0;
 
-        println!("Server started listening at {}", address);
+        if !cfg!(test) {
+            println!("Server started listening at {}", address);
+        }
 
         for stream in listener.incoming() { //Wait for players
             match stream {
@@ -75,7 +74,9 @@ impl GameController {
             }
 
             if count >= self.player_limit {
-                println!("Player limit reached. The game will start soon!");
+                if !cfg!(test) {
+                    println!("Player limit reached. The game will start soon!");
+                }
                 return;
             }
         }
@@ -86,7 +87,9 @@ impl GameController {
 
         match stream.write(&json.into_bytes()) {
             Ok(_) => {
-                println!("player joined! player details : {:?}", stream);
+                if !cfg!(test) {
+                    println!("player joined! player details : {:?}", stream);
+                }
                 self.join_client_stream(stream);
             }
             Err(_) => {
@@ -112,6 +115,9 @@ impl GameController {
             if msg != "END_EFFECT\n" {
                 panic!("Invalid message in wait client effect. data is {}", msg);
             }
+        }
+        if !cfg!(test) {
+            println!("The game can start");
         }
     }
 
