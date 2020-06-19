@@ -48,7 +48,7 @@ impl GameController {
             WorkerResult::Complete
         }), Duration::from_millis(200));
 
-        self.conduc.start();
+        //self.conduc.start();
 
 
     }
