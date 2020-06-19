@@ -48,9 +48,6 @@ impl GameController {
             WorkerResult::Complete
         }), Duration::from_millis(200));
 
-        //self.conduc.start();
-
-
     }
     pub(super) fn set_communication_provider_to_map_proc(&self) {
         self.game.lock().unwrap().map_proc.lock().unwrap().comn_prov = Some(self.comn_prov.clone());

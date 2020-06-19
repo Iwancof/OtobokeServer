@@ -1,4 +1,13 @@
-
+use std::{
+    time::{
+        Duration,
+    },
+};
+use super::{
+    worker::{
+        WorkerResult,
+    },
+};
 
 use super::{
     GameController,
@@ -44,6 +53,7 @@ impl GameController {
         let cloned_prov = self.comn_prov.clone();
         let client_count = self.player_limit;
 
+        /*
         self.timer.subscribe(Box::new(move || {
             for i in 0..client_count {
                 let player_lastest_message = cloned_prov_network_buf.get_buffer_at(i);
@@ -58,19 +68,37 @@ impl GameController {
             let mut received_data = cloned_game.lock().unwrap().coordinate_to_json();
             cloned_prov.send(received_data);
         }), 50);
+        */
+        self.conduc.add_task(Box::new(move || {
+            for i in 0..client_count {
+                let player_lastest_message = cloned_prov_network_buf.get_buffer_at(i);
+                // get lastest player info
+                //println!("\x1b[10;0Hclient[{}] at {}",i,&player_lastest_message);
 
-        self.timer.start(); //Start doing tasks
+                let parse_result = Self::parse_client_info(player_lastest_message);
+                if parse_result.len() == 3 {
+                    cloned_game.lock().unwrap().update_coordinate(i, parse_result);
+                }
+            };
+            let mut received_data = cloned_game.lock().unwrap().coordinate_to_json();
+            cloned_prov.send(received_data);
+
+            WorkerResult::Complete
+        }), Duration::from_millis(50));
+
+        self.conduc.start(); //Start doing tasks
         
         loop { //main game loop 
-            /*
-            let mut server_stdin = String::new();
-            io::stdin().read_line(&mut server_stdin);
+            if self.end_game {
+                // or... drop this?
 
-            if server_stdin == "stop" {
-                exit(0);
+                break;
             }
-            */
         }
+    }
+    fn stop(&mut self) {
+        self.end_game = true;
+        self.conduc.stop();
     }
 
 }

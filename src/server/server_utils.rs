@@ -24,7 +24,6 @@ use std::{
 
 use crate::{
     game::Game,
-    time::LoopTimer,
     game,
     map::{
         self,
@@ -49,9 +48,9 @@ impl GameController {
         GameController{
             player_limit: game.number_of_player,
             game: Arc::new(Mutex::new(game)),
-            timer: LoopTimer::new(),
             comn_prov: Arc::new(Mutex::new(CommunicationProvider::new())),
             conduc: WorkerConductor::new(snd),
+            end_game: false,
         }
     }
     
