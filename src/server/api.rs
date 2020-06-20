@@ -18,9 +18,7 @@ use super::{
 
 
 impl GameController {
-    pub fn server_flow_tmp(&mut self) {
-        // TODO: remove this.
-    
+    pub fn start_server(&mut self) {
         self.show_game_details();
         println!("Game initialized");
 
@@ -35,7 +33,7 @@ impl GameController {
         self.wait_and_prepare_communication();
         // wait effect end and start coordinates.
 
-        self.start_game();
+        self.lanch_game();
         // start!
     }
     pub fn server_flow_to_test(&mut self) {
@@ -51,7 +49,7 @@ impl GameController {
         println!("Player limit : {}",self.player_limit);
     }
 
-    pub fn start_game(&mut self) {
+    pub fn lanch_game(&mut self) {
         println!("GameReady!!");
         self.announce_wrap("GameReady|".to_string());
         self.start_reading_coordinate();
@@ -78,17 +76,5 @@ impl GameController {
         }), Duration::from_millis(50));
 
         self.conduc.start(); //Start doing tasks
-        
-        loop { //main game loop 
-            if self.end_game {
-                // or... drop this?
-
-                break;
-            }
-        }
-    }
-    pub fn stop(&mut self) {
-        self.end_game = true;
-        self.conduc.stop();
     }
 }

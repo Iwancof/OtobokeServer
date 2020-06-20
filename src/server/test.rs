@@ -84,6 +84,6 @@ fn server_tester() {
             panic!("Connection NG.");
         }
     }
-    game_instance.lock().unwrap().stop();
+    //game_instance.lock().unwrap().stop();
 }
 

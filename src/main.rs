@@ -58,7 +58,7 @@ fn main() {
     let mut g = server::GameController::new(game, snd);
     // make server call GameController
 
-    g.server_flow_tmp();
+    g.start_server();
 
     println!("Game end");
 }

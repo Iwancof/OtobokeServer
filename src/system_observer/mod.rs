@@ -1,5 +1,6 @@
 
 mod log;
+mod detector;
 
 
 
