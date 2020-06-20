@@ -20,7 +20,7 @@ use super::{
 impl GameController {
     pub fn start_server(&mut self) {
         self.show_game_details();
-        println!("Game initialized");
+        self.log_sender.send("Game initialized".to_string());
 
         self.wait_until_clients_connection("192.168.1.7:5522");
         // wait players
@@ -46,11 +46,11 @@ impl GameController {
     }
 
     pub fn show_game_details(&self) {
-        println!("Player limit : {}",self.player_limit);
+        self.log_sender.send(format!("Player limit : {}",self.player_limit));
     }
 
     pub fn lanch_game(&mut self) {
-        println!("GameReady!!");
+        self.log_sender.send("GameReady!!".to_string());
         self.announce_wrap("GameReady|".to_string());
         self.start_reading_coordinate();
 

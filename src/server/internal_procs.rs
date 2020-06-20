@@ -49,8 +49,8 @@ impl GameController {
             player_limit: game.number_of_player,
             game: Arc::new(Mutex::new(game)),
             comn_prov: Arc::new(Mutex::new(CommunicationProvider::new())),
-            conduc: WorkerConductor::new(snd),
-            end_game: false,
+            conduc: WorkerConductor::new(snd.clone()),
+            log_sender: snd,
         }
     }
     
@@ -59,7 +59,7 @@ impl GameController {
         let mut count = 0;
 
         if !cfg!(test) {
-            println!("Server started listening at {}", address);
+            self.log_sender.send(format!("Server started listening at {}", address));
         }
 
         for stream in listener.incoming() { //Wait for players
@@ -69,13 +69,13 @@ impl GameController {
                     count += 1;
                 },
                 Err(_) => {
-                    println!("Unknown client detected.");
+                    self.log_sender.send("Unknown client detected.".to_string());
                 }
             }
 
             if count >= self.player_limit {
                 if !cfg!(test) {
-                    println!("Player limit reached. The game will start soon!");
+                    self.log_sender.send("Player limit reached. The game will start soon!".to_string());
                 }
                 return;
             }
@@ -88,12 +88,12 @@ impl GameController {
         match stream.write(&json.into_bytes()) {
             Ok(_) => {
                 if !cfg!(test) {
-                    println!("player joined! player details : {:?}", stream);
+                    self.log_sender.send(format!("player joined! player details : {:?}", stream));
                 }
                 self.join_client_stream(stream);
             }
             Err(_) => {
-                println!("error occured. this stream will ignore");
+                self.log_sender.send("error occured. this stream will ignore".to_string());
             }
         }
     }
@@ -117,7 +117,7 @@ impl GameController {
             }
         }
         if !cfg!(test) {
-            println!("The game can start");
+            self.log_sender.send("The game can start".to_string());
         }
     }
 }

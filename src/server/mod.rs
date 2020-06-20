@@ -37,15 +37,15 @@ use crate::{
     }
 };
 
+use std::sync::mpsc::{
+    SyncSender,
+};
+
 
 pub struct GameController {
     comn_prov: Arc<Mutex<CommunicationProvider>>,
     player_limit: usize,
     game: Arc<Mutex<Game>>,
     conduc: WorkerConductor,
-    end_game: bool,
+    log_sender: SyncSender<String>,
 }
-
-
-
-

@@ -20,6 +20,9 @@ extern crate serde_json;
 
 use std::env;
 use map::MapInfo;
+use std::thread;
+use std::cmp::max;
+use std::process::exit;
 use std::sync::{
     Arc,
     Mutex,
@@ -29,14 +32,20 @@ use std::sync::{
         sync_channel,
     }
 };
+use std::time::{
+    Duration,
+};
 use server::{
     communication::{
         CommunicationProviderTrait,
         CommunicationProvider,
     },
 };
+use getch::Getch;
 
 fn main() {
+    clear();
+
     println!("OTOBOKE SERVER STARTING NOW!!");
 
     let (snd, rcv) = sync_channel(16);
@@ -55,16 +64,68 @@ fn main() {
     let mut game = game::Game::new(map, player_number);
     // make instance with map and number.
 
-    let mut g = server::GameController::new(game, snd);
+    let mut g = server::GameController::new(game, snd.clone());
     // make server call GameController
 
-    g.start_server();
+    thread::spawn(move || {
+        g.start_server();
+    });
 
-    println!("Game end");
+    let mut logs: Vec<String> = vec![];
+    let writing_logs = Arc::new(Mutex::new(false));
+
+    let c_wric = writing_logs.clone();
+    thread::spawn(move || {
+        let mut tmp_chars = String::new();
+        let getch = Getch::new();
+        loop {
+            if let Ok(c) = getch.getch() {
+                match c {
+                    8 => { tmp_chars.pop(); },
+                    13 => {
+                        if tmp_chars == "exit".to_string() {
+                            exit(0);
+                        } else if tmp_chars == "".to_string() {
+                            ;
+                        } else {
+                            // unknown command.
+                            snd.send(format!("{} is not a command", tmp_chars));
+                        }
+                        tmp_chars = String::new();
+                    },
+                    c => {
+                        match c as char {
+                            c => tmp_chars.push(c),
+                        }
+                        if *c_wric.lock().unwrap() {
+                            continue;
+                        }
+                    }
+                };
+                println!("\x1b[25;0H\x1b[2K{}", tmp_chars);
+            }
+        }
+    });
+    loop {
+        if let Ok(l) = rcv.try_recv() {
+            logs.push(l);
+        }
+        *writing_logs.lock().unwrap() = true;
+        print!("\x1b[7;0H");
+        for j in max(logs.len() as i32 - 10, 0)..logs.len() as i32 {
+            println!("{}", logs[j as usize]);
+        }
+        *writing_logs.lock().unwrap() = false;
+
+        thread::sleep(Duration::from_millis(100));
+    }
 }
 
 fn print_on(msg: String, wos: usize, hos: usize) {
     print!("\x1b[{};{}H{}", hos, wos, msg);
 }
 
-
+fn clear() {
+    println!("\x1b[2J");
+    println!("\x1b[0;0H");
+}
