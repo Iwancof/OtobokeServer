@@ -38,26 +38,27 @@ impl MapProcAsGame { // for AI
             players: vec![],
             //pacman: QuanCoord::default(),
             // dont erase.
-            pacman: QuanCoord{ x: 24, y: 16 },
+            pacman: QuanCoord{ x: 13, y: 13 },
             pm_target: 0,
             pm_state: Arc::new(Mutex::new(super::PMState::Normal)),
-            pm_prev_place: QuanCoord{ x: 25, y: 16 },
+            pm_prev_place: QuanCoord{ x: 12, y: 13 },
             comn_prov: None,
         }
     }
+    fn is_inferpoint_now(&self) -> bool {
+        self.pm_inferpoints.exist_in(self.pacman)
+    }
+    
 
     /// パワー餌を食べたパックマンを一回動かす関数
-    pub fn move_powered_pacman(&mut self) {
+    fn move_powered_pacman(&mut self) {
         let movable_next_points = self.map.get_can_move_on(self.pacman);
         let target_player_coord = self.players[self.search_near_player_idx()].coord;
 
-        if !self.pm_inferpoints.exist_in(self.pacman) {
+        if !self.is_inferpoint_now() {
             let next = self.routed_next_point(movable_next_points);
             self.move_to(next);
             return;
-        }
-        for e in &movable_next_points {
-            //println!("able {}", *e);
         }
 
         // 移動できる方向について移動したあとのプレイヤーとの距離を計算
@@ -66,13 +67,36 @@ impl MapProcAsGame { // for AI
 
         let (mut min_value, mut min_index) = (10000., 0);
         for (i, e) in result.iter().enumerate() {
-            if min_value > e.1 {
+            if e.1 < min_value {
                 min_value = e.1;
                 min_index = i;
             }
         }
-        //println!("result is {:?}", result[max_index]);
         self.move_to(result[min_index].0).expect("move to wall");
+    }
+    /// 通常状態のパックマンを一回動かす関数
+    fn move_normal_pacman(&mut self) {
+        let movable_next_points = self.map.get_can_move_on(self.pacman);
+        if !self.is_inferpoint_now() {
+            // not on a infer point.
+            let next = self.routed_next_point(movable_next_points);
+            self.move_to(next);
+            return;
+        }
+
+        // TODO: exculude before_change_pos.
+        let result: Vec<(QuanCoord, f64)> = movable_next_points.iter().
+            map(|x| (*x, self.evaluate_at(*x))).collect();
+
+        // Convert to tuple(coord, score).
+        let (mut max_value, mut max_index) = (-10000., 0);
+        for (i, e) in result.iter().enumerate() {
+            if max_value < e.1 {
+                max_value = e.1;
+                max_index = i;
+            }
+        }
+        self.move_to(result[max_index].0).expect("move to wall");
     }
 
     /// パックマンから最も近いプレイヤーのインデックスを返す関数
@@ -91,39 +115,19 @@ impl MapProcAsGame { // for AI
     // Easy AI
     /// パックマンを一回動かす関数
     pub fn move_pacman(&mut self) {
-        let mut powered = false;
-        match self.pm_state.lock().unwrap().clone() {
-            PMState::Powered(_) => powered = true,
-            _ => powered = false,
-        }
+        let powered = match *self.pm_state.lock().unwrap() { // to get &mut self.
+            PMState::Powered(_) => true,
+            PMState::Normal => false,
+        };
         if powered {
             self.move_powered_pacman();
         } else {
-            let movable_next_points = self.map.get_can_move_on(self.pacman);
-            if !self.pm_inferpoints.exist_in(self.pacman) {
-                // not on a infer point.
-                let next = self.routed_next_point(movable_next_points);
-                self.move_to(next);
-                return;
-            }
+            self.move_normal_pacman();
 
-            for e in &movable_next_points {
-                //println!("able {}", *e);
+            if self.players.iter().any(|x| x.coord == self.pacman) { // pacman game over
+                self.comn_prov.as_ref().unwrap().
+                    send_data_with_tag_and_string("GAMSTA", "PACMAN died".to_string()).unwrap();
             }
-
-            // TODO: exculude before_change_pos.
-            let result: Vec<(QuanCoord, f64)>= movable_next_points.iter().
-                map(|x| (*x, self.evaluate_at(*x))).collect();
-            // Convert to tuple(coord, score).
-            let (mut max_value, mut max_index) = (-10000., 0);
-            for (i, e) in result.iter().enumerate() {
-                if max_value < e.1 {
-                    max_value = e.1;
-                    max_index = i;
-                }
-            }
-            //println!("result is {:?}", result[max_index]);
-            self.move_to(result[max_index].0).expect("move to wall");
         }
     }
     /// パックマンを指定の座標まで一回で移動させる。テレポートなども考慮される
@@ -150,30 +154,8 @@ impl MapProcAsGame { // for AI
             6 => { // power cookie
                 self.pac_cookie_at(coord);
                 *self.map.access_by_coord_game_based_system_mutref(coord) = 0; // pac.
-           
-                match self.pm_state.lock().unwrap().clone() {
-                    PMState::Normal => { /* nothing */ },
-                    PMState::Powered(sender) => {
-                        // if pacman had already powered.
-                        sender.send(Message::Stop);
-                    }
-                }
 
-                // make time duration
-                let d = Duration::from_secs_f64(PACMAN_POWERED_TIME);
-                let state_ptr_clone = self.pm_state.clone();
-                
-                println!("POWERED!!");
-                Self::pacman_state_change_notify(self.comn_prov.clone().unwrap(), self.pm_state.clone());
-
-                let cloned_prov = self.comn_prov.clone();
-                let sender = time_task_reservation(move || {
-                    *state_ptr_clone.lock().unwrap() = PMState::Normal;
-                    Self::pacman_state_change_notify(cloned_prov.clone().unwrap(), state_ptr_clone.clone());
-                    println!("Normalize");
-                }, d);
-
-                *self.pm_state.lock().unwrap() = PMState::Powered(sender);
+                self.handle_powered_cookie();
                 
                 coord
             },
@@ -183,6 +165,35 @@ impl MapProcAsGame { // for AI
         };
         self.pm_prev_place = prev_place_tmp;
         Ok(self.pacman)
+    }
+    fn cancel_prev_cookie(&self) -> bool { // ignore if pacman is not powered.
+        match self.pm_state.lock().unwrap().clone() {
+            PMState::Normal => { false },
+            PMState::Powered(sender) => {
+                // if pacman had already powered.
+                sender.send(Message::Stop);
+                true
+            }
+        }
+    }
+    fn handle_powered_cookie(&mut self) {
+        self.cancel_prev_cookie();
+
+        // make time duration
+        let d = Duration::from_secs_f64(PACMAN_POWERED_TIME);
+        let state_ptr_clone = self.pm_state.clone();
+        
+        println!("POWERED!!");
+        Self::pacman_state_change_notify(self.comn_prov.clone().unwrap(), self.pm_state.clone());
+
+        let cloned_prov = self.comn_prov.clone();
+        let sender = time_task_reservation(move || {
+            *state_ptr_clone.lock().unwrap() = PMState::Normal;
+            Self::pacman_state_change_notify(cloned_prov.clone().unwrap(), state_ptr_clone.clone());
+            println!("Normalize");
+        }, d);
+
+        *self.pm_state.lock().unwrap() = PMState::Powered(sender);
     }
     fn pac_cookie_at(&mut self, coord: QuanCoord) {
         match self.map.access_by_coord_game_based_system(coord) {

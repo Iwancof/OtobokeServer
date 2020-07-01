@@ -1,0 +1,102 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_OUTPUT_FILESEP	slash	/slash or backslash/
+!_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
+!_TAG_PATTERN_LENGTH_LIMIT	96	/0 for no limit/
+!_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
+!_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
+!_TAG_PROGRAM_URL	https://ctags.io/	/official site/
+!_TAG_PROGRAM_VERSION	0.0.0	/f6c7064a/
+ExistVecTrait	map_alg.rs	/^trait ExistVecTrait<T> {$/;"	i
+GameClient	mod.rs	/^pub struct GameClient {$/;"	s
+MapInfo	mapinfo_access.rs	/^impl MapInfo {$/;"	c
+MapInfo	mapinfo_utils.rs	/^impl MapInfo {$/;"	c
+MapInfo	mod.rs	/^pub struct MapInfo {$/;"	s
+MapProcAsGame	map_alg.rs	/^impl MapProcAsGame { \/\/ for AI$/;"	c
+MapProcAsGame	mod.rs	/^pub struct MapProcAsGame {$/;"	s
+Normal	mod.rs	/^    Normal,$/;"	e	enum:PMState
+Output	coord.rs	/^    type Output = Self;$/;"	t	implementation:QuanCoord
+PMState	mod.rs	/^impl ToString for PMState {$/;"	c
+PMState	mod.rs	/^pub enum PMState {$/;"	g
+Powered	mod.rs	/^    Powered(Sender<time::Message>), \/\/ this sender is to stop thread. $/;"	e	enum:PMState
+QuanCoord	coord.rs	/^impl QuanCoord {$/;"	c
+QuanCoord	coord.rs	/^impl Sub for QuanCoord {$/;"	c
+QuanCoord	coord.rs	/^impl fmt::Display for QuanCoord {$/;"	c
+QuanCoord	coord.rs	/^pub struct QuanCoord {$/;"	s
+RawCoord	coord.rs	/^impl RawCoord {$/;"	c
+RawCoord	coord.rs	/^pub struct RawCoord {$/;"	s
+Vec	map_alg.rs	/^impl<T: PartialEq> ExistVecTrait<T> for Vec<T> {$/;"	c
+access_by_coord_game_based_system	mapinfo_access.rs	/^    pub fn access_by_coord_game_based_system(&self, mut coord: QuanCoord) -> i32 {$/;"	P	implementation:MapInfo
+access_by_coord_game_based_system_mutref	mapinfo_access.rs	/^    pub fn access_by_coord_game_based_system_mutref(&mut self, mut coord: QuanCoord) -> &mut i32/;"	P	implementation:MapInfo
+access_by_coord_index_based_converted_system	mapinfo_access.rs	/^    pub fn access_by_coord_index_based_converted_system(&self, x: i32, y: i32) -> i32 {$/;"	P	implementation:MapInfo
+access_by_coord_index_based_converted_system_mutref	mapinfo_access.rs	/^    pub fn access_by_coord_index_based_converted_system_mutref(&mut self, x: i32, y: i32) -> &mu/;"	P	implementation:MapInfo
+acs_onvoid	mapinfo_access.rs	/^    pub fn acs_onvoid(&self, x: i32, y: i32) -> i32 {$/;"	P	implementation:MapInfo
+anti_quantize	coord.rs	/^    pub fn anti_quantize(&self) -> RawCoord {$/;"	P	implementation:QuanCoord
+build_by_filename	mapinfo_utils.rs	/^    pub fn build_by_filename(file_name: String) -> Self {$/;"	P	implementation:MapInfo
+build_by_string	mapinfo_utils.rs	/^    pub fn build_by_string(map_data: String) -> Self {$/;"	P	implementation:MapInfo
+comn_prov	mod.rs	/^    pub comn_prov: Option<Arc<Mutex<CommunicationProvider>>>,$/;"	m	struct:MapProcAsGame
+coord	mod.rs	/^    pub coord: QuanCoord,$/;"	m	struct:GameClient
+coord	mod.rs	/^pub mod coord;$/;"	n
+count_at	mapinfo_access.rs	/^    pub fn count_at(&self, x: i32, y: i32) -> i32 {$/;"	P	implementation:MapInfo
+create_map_mock	test.rs	/^fn create_map_mock() -> MapInfo {$/;"	f
+create_map_proc_as_game_mock	test.rs	/^fn create_map_proc_as_game_mock() -> MapProcAsGame {$/;"	f
+dist	coord.rs	/^    pub fn dist(a: QuanCoord, b: QuanCoord) -> f32 {$/;"	P	implementation:QuanCoord
+distance_to_coord	coord.rs	/^    pub fn distance_to_coord(&self, other: Self) -> f64 {$/;"	P	implementation:QuanCoord
+distance_to_element	coord.rs	/^    pub fn distance_to_element(&self, x: i32, y: i32) -> f64 {$/;"	P	implementation:QuanCoord
+evaluate_at	map_alg.rs	/^    fn evaluate_at(&mut self, pos: QuanCoord) -> f64 {$/;"	P	implementation:MapProcAsGame
+exist_in	map_alg.rs	/^    fn exist_in(&self, e: T) -> bool {$/;"	P	implementation:Vec
+exist_in	map_alg.rs	/^    fn exist_in(&self, e: T) -> bool;$/;"	P	interface:ExistVecTrait
+exist_vec_trait_test	map_alg.rs	/^fn exist_vec_trait_test() {$/;"	f
+field	mod.rs	/^    pub field: Vec<Vec<i32>>,$/;"	m	struct:MapInfo
+field_access_test	test.rs	/^fn field_access_test() {$/;"	f
+fmt	coord.rs	/^    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {$/;"	P	implementation:QuanCoord
+get_can_move_on	mapinfo_utils.rs	/^    pub fn get_can_move_on(&self, now_pos: QuanCoord) -> Vec<QuanCoord> {$/;"	P	implementation:MapInfo
+get_inferpoints	mapinfo_utils.rs	/^    pub fn get_inferpoints(&self) -> Vec<QuanCoord> {$/;"	P	implementation:MapInfo
+height	mod.rs	/^    pub height: usize,$/;"	m	struct:MapInfo
+is_map_chip	mapinfo_utils.rs	/^    fn is_map_chip(v: i32) -> bool {$/;"	P	implementation:MapInfo
+map	mod.rs	/^    pub map: MapInfo,$/;"	m	struct:MapProcAsGame
+map_alg	mod.rs	/^pub mod map_alg;$/;"	n
+map_element_bias_with_dist	map_alg.rs	/^    fn map_element_bias_with_dist(dist: f64) -> f64 {$/;"	P	implementation:MapProcAsGame
+map_file_import_test	test.rs	/^fn map_file_import_test() {$/;"	f
+map_mock_valid_test	test.rs	/^fn map_mock_valid_test() {$/;"	f
+map_to_string	mapinfo_access.rs	/^    pub fn map_to_string(&self) -> String {$/;"	P	implementation:MapInfo
+mapinfo_access	mod.rs	/^pub mod mapinfo_access;$/;"	n
+mapinfo_utils	mod.rs	/^pub mod mapinfo_utils;$/;"	n
+move_pacman	map_alg.rs	/^    pub fn move_pacman(&mut self) {$/;"	P	implementation:MapProcAsGame
+move_powered_pacman	map_alg.rs	/^    pub fn move_powered_pacman(&mut self) {$/;"	P	implementation:MapProcAsGame
+move_to	map_alg.rs	/^    pub fn move_to(&mut self, coord: QuanCoord) -> Result<QuanCoord, QuanCoord>{$/;"	P	implementation:MapProcAsGame
+move_to_non_teleport_point_test	test.rs	/^fn move_to_non_teleport_point_test() {$/;"	f
+move_to_teleport_point_test	test.rs	/^fn move_to_teleport_point_test() {$/;"	f
+new	map_alg.rs	/^    pub fn new(map: MapInfo) -> Self {$/;"	P	implementation:MapProcAsGame
+pac_cookie_at	map_alg.rs	/^    fn pac_cookie_at(&mut self, coord: QuanCoord) {$/;"	P	implementation:MapProcAsGame
+pacman	mod.rs	/^    pub pacman: QuanCoord,$/;"	m	struct:MapProcAsGame
+pacman_state_change_notify	map_alg.rs	/^    fn pacman_state_change_notify<T: CommunicationProviderTrait>(prov: T, state: Arc<Mutex<PMSta/;"	P	implementation:MapProcAsGame
+player_pos_bias_with_dist	map_alg.rs	/^    fn player_pos_bias_with_dist(dist: f64) -> f64 {$/;"	P	implementation:MapProcAsGame
+players	mod.rs	/^    pub players: Vec<GameClient>, $/;"	m	struct:MapProcAsGame
+plus_element_x	coord.rs	/^    pub fn plus_element_x(&self, x: i32) -> Self {$/;"	P	implementation:QuanCoord
+plus_element_y	coord.rs	/^    pub fn plus_element_y(&self, y: i32) -> Self {$/;"	P	implementation:QuanCoord
+pm_inferpoints	mod.rs	/^    pub pm_inferpoints: Vec<QuanCoord>,$/;"	m	struct:MapProcAsGame
+pm_prev_place	mod.rs	/^    pub pm_prev_place: QuanCoord,$/;"	m	struct:MapProcAsGame
+pm_state	mod.rs	/^    pub pm_state: Arc<Mutex<PMState>>,$/;"	m	struct:MapProcAsGame
+pm_target	mod.rs	/^    pub pm_target: usize,$/;"	m	struct:MapProcAsGame
+quantize	coord.rs	/^    pub fn quantize(&self) -> QuanCoord {$/;"	P	implementation:RawCoord
+raw_coord	mod.rs	/^    pub raw_coord: RawCoord,$/;"	m	struct:GameClient
+routed_next_point	map_alg.rs	/^    pub fn routed_next_point(&self, movable_points: Vec<QuanCoord>) -> QuanCoord {$/;"	P	implementation:MapProcAsGame
+routed_next_point_test	test.rs	/^fn routed_next_point_test() {$/;"	f
+search_movable_point_test	test.rs	/^fn search_movable_point_test() {$/;"	f
+search_near_player_idx	map_alg.rs	/^    fn search_near_player_idx(&self) -> usize {$/;"	P	implementation:MapProcAsGame
+show_map	mapinfo_utils.rs	/^    pub fn show_map(&self) {$/;"	P	implementation:MapInfo
+sub	coord.rs	/^    fn sub(self, other: Self) -> Self {$/;"	P	implementation:QuanCoord
+test	mod.rs	/^pub mod test;$/;"	n
+to_string	mod.rs	/^    fn to_string(&self) -> String {$/;"	P	implementation:PMState
+torus_form	coord.rs	/^    pub fn torus_form(&self, map_ptr: &super::MapInfo) -> Self {$/;"	P	implementation:QuanCoord
+unique_field_element_search_test	test.rs	/^fn unique_field_element_search_test() {$/;"	f
+unique_points	mod.rs	/^    pub unique_points: HashMap<i32, QuanCoord>,$/;"	m	struct:MapInfo
+vec_group_eq	test.rs	/^fn vec_group_eq<T: PartialEq>(v: &Vec<T>, w: &Vec<T>) -> bool {$/;"	f
+vec_group_eq_test	test.rs	/^fn vec_group_eq_test() {$/;"	f
+width	mod.rs	/^    pub width: usize,$/;"	m	struct:MapInfo
+x	coord.rs	/^    pub x: f32,$/;"	m	struct:RawCoord
+x	coord.rs	/^    pub x: i32,$/;"	m	struct:QuanCoord
+y	coord.rs	/^    pub y: f32,$/;"	m	struct:RawCoord
+y	coord.rs	/^    pub y: i32,$/;"	m	struct:QuanCoord
+z	coord.rs	/^    pub z: f32, \/\/ clients(Unity) send z data.$/;"	m	struct:RawCoord

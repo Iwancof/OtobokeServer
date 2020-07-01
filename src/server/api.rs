@@ -22,7 +22,7 @@ impl GameController {
         self.show_game_details();
         self.log_sender.send("Game initialized".to_string());
 
-        self.wait_until_clients_connection("192.168.1.7:5522");
+        self.wait_until_clients_connection("192.168.2.125:5522");
         // wait players
 
         self.game_initialize();
