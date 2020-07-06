@@ -6,6 +6,7 @@ use std::{
     sync::{
         mpsc::{
             Sender,
+            SyncSender,
         },
         Arc,
         Mutex,
@@ -59,6 +60,7 @@ pub struct MapProcAsGame {
     pub pm_state: Arc<Mutex<PMState>>,
     pub pm_prev_place: QuanCoord,
     pub comn_prov: Option<Arc<Mutex<CommunicationProvider>>>,
+    pub snd: SyncSender<String>,
     // TODO: fix to use trait.
 }
 

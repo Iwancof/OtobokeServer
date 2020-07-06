@@ -10,6 +10,9 @@ use super::{
 use std::sync::{
     Arc,
     Mutex,
+    mpsc::{
+        sync_channel,
+    },
 };
 
 fn create_map_mock() -> MapInfo {
@@ -114,6 +117,7 @@ fn create_map_proc_as_game_mock() -> MapProcAsGame {
         pm_state: Arc::new(Mutex::new(PMState::Normal)),
         pm_prev_place: QuanCoord::default(),
         comn_prov: None,
+        snd: (sync_channel(0)).0,
     }
 }
 // 01010 <- (4, 4)

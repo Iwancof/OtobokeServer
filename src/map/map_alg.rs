@@ -25,13 +25,16 @@ use std::time::{
 use std::sync::{
     Arc,
     Mutex,
+    mpsc::{
+        SyncSender,
+    },
 };
 
 use crate::CommunicationProviderTrait;
 
 impl MapProcAsGame { // for AI
     /// 引数にMapInfoを取り、初期値やフィールドの初期化を行う
-    pub fn new(map: MapInfo) -> Self {
+    pub fn new(map: MapInfo, snd: SyncSender<String>) -> Self {
         Self {
             pm_inferpoints: map.get_inferpoints(),
             map: map,
@@ -43,6 +46,7 @@ impl MapProcAsGame { // for AI
             pm_state: Arc::new(Mutex::new(super::PMState::Normal)),
             pm_prev_place: QuanCoord{ x: 12, y: 13 },
             comn_prov: None,
+            snd: snd,
         }
     }
     fn is_inferpoint_now(&self) -> bool {
@@ -125,9 +129,13 @@ impl MapProcAsGame { // for AI
             self.move_normal_pacman();
 
             if self.players.iter().any(|x| x.coord == self.pacman) { // pacman game over
+                self.snd.send("Pacman died!".to_string());
                 self.comn_prov.as_ref().unwrap().
                     send_data_with_tag_and_string("GAMSTA", "PACMAN died".to_string()).unwrap();
             }
+
+
+
         }
     }
     /// パックマンを指定の座標まで一回で移動させる。テレポートなども考慮される
@@ -183,14 +191,15 @@ impl MapProcAsGame { // for AI
         let d = Duration::from_secs_f64(PACMAN_POWERED_TIME);
         let state_ptr_clone = self.pm_state.clone();
         
-        println!("POWERED!!");
+        self.snd.send("POWERED!!".to_string());
         Self::pacman_state_change_notify(self.comn_prov.clone().unwrap(), self.pm_state.clone());
 
         let cloned_prov = self.comn_prov.clone();
+        let cloned_sender = self.snd.clone();
         let sender = time_task_reservation(move || {
             *state_ptr_clone.lock().unwrap() = PMState::Normal;
             Self::pacman_state_change_notify(cloned_prov.clone().unwrap(), state_ptr_clone.clone());
-            println!("Normalize");
+            cloned_sender.send("NORMALIZE!!".to_string());
         }, d);
 
         *self.pm_state.lock().unwrap() = PMState::Powered(sender);

@@ -61,7 +61,7 @@ fn main() {
     let mut map = map::MapInfo::build_by_filename(map_path);
     // pure map info
 
-    let mut game = game::Game::new(map, player_number);
+    let mut game = game::Game::new(map, player_number, snd.clone());
     // make instance with map and number.
 
     let mut g = server::GameController::new(game, snd.clone());
