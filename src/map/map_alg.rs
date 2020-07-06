@@ -128,7 +128,7 @@ impl MapProcAsGame { // for AI
         } else {
             self.move_normal_pacman();
 
-            if self.players.iter().any(|x| x.coord == self.pacman) { // pacman game over
+            if self.players.iter().any(|x| QuanCoord::dist(x.coord, self.pacman) <= 1.0) { // pacman game over
                 self.snd.send("Pacman died!".to_string());
                 self.comn_prov.as_ref().unwrap().
                     send_data_with_tag_and_string("GAMSTA", "PACMAN died".to_string()).unwrap();
