@@ -132,6 +132,7 @@ impl MapProcAsGame { // for AI
                 self.snd.send("Pacman died!".to_string());
                 self.comn_prov.as_ref().unwrap().
                     send_data_with_tag_and_string("GAMSTA", "PACMAN died".to_string()).unwrap();
+                self.snd.send("exit".to_string());
             }
 
 

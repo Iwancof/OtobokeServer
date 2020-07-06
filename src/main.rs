@@ -108,6 +108,9 @@ fn main() {
     });
     loop {
         if let Ok(l) = rcv.try_recv() {
+            if l == "exit".to_string() {
+                exit(0);
+            }
             logs.push(l);
         }
         *writing_logs.lock().unwrap() = true;
