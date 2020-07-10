@@ -38,7 +38,7 @@ pub const UNIT_SIZE: f32 = 1.05;
 /// 単一であることが保証されているマップ情報に対して高速検索を行うための要素(3, 4はテレポート)
 pub const UNIQUE_ELEMENTS: [i32; 2] = [3, 4];
 /// パックマンが無敵状態でいることのできる時間
-pub const PACMAN_POWERED_TIME: f64 = 8.0; // 8 sec
+pub const PACMAN_POWERED_TIME: f64 = 10.0; // 8 sec
 
 
 /// 純粋なマップ情報
