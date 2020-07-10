@@ -4,6 +4,7 @@ use std::fs;
 use std::fmt;
 use super::{
     PACMAN_POWERED_TIME,
+    PACMAN_MIDDLE_TIME,
     MapProcAsGame,
     MapInfo,
     PMState,
@@ -121,6 +122,7 @@ impl MapProcAsGame { // for AI
     pub fn move_pacman(&mut self) {
         let powered = match *self.pm_state.lock().unwrap() { // to get &mut self.
             PMState::Powered(_) => true,
+            PMState::Middle(_) => false,
             PMState::Normal => false,
         };
         if powered {
@@ -183,6 +185,11 @@ impl MapProcAsGame { // for AI
                 sender.send(Message::Stop);
                 true
             }
+            PMState::Middle(sender) => {
+                // if pacman had already powered.
+                sender.send(Message::Stop);
+                true
+            }
         }
     }
     fn handle_powered_cookie(&mut self) {
@@ -190,17 +197,26 @@ impl MapProcAsGame { // for AI
 
         // make time duration
         let d = Duration::from_secs_f64(PACMAN_POWERED_TIME);
-        let state_ptr_clone = self.pm_state.clone();
+        let e = Duration::from_secs_f64(PACMAN_MIDDLE_TIME);
         
         self.snd.send("POWERED!!".to_string());
         Self::pacman_state_change_notify(self.comn_prov.clone().unwrap(), self.pm_state.clone());
 
+        let state_ptr_clone = self.pm_state.clone();
         let cloned_prov = self.comn_prov.clone();
         let cloned_sender = self.snd.clone();
-        let sender = time_task_reservation(move || {
-            *state_ptr_clone.lock().unwrap() = PMState::Normal;
+        let sender = time_task_reservation(move || { // Middle
+            let nested_cloned_prov = cloned_prov.clone();
+            let nested_cloned_sender = cloned_sender.clone();
+            let nested_state_ptr_clone = state_ptr_clone.clone();
+            let sender = time_task_reservation(move || { // Normal
+                *nested_state_ptr_clone.lock().unwrap() = PMState::Normal;  
+                Self::pacman_state_change_notify(nested_cloned_prov.clone().unwrap(), nested_state_ptr_clone.clone());
+                nested_cloned_sender.send("NORMALIZE!!".to_string());
+            }, e);
+            *state_ptr_clone.lock().unwrap() = PMState::Middle(sender);
             Self::pacman_state_change_notify(cloned_prov.clone().unwrap(), state_ptr_clone.clone());
-            cloned_sender.send("NORMALIZE!!".to_string());
+            cloned_sender.send("MIDDLE!!".to_string());
         }, d);
 
         *self.pm_state.lock().unwrap() = PMState::Powered(sender);

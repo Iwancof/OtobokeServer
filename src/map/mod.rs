@@ -38,7 +38,9 @@ pub const UNIT_SIZE: f32 = 1.05;
 /// 単一であることが保証されているマップ情報に対して高速検索を行うための要素(3, 4はテレポート)
 pub const UNIQUE_ELEMENTS: [i32; 2] = [3, 4];
 /// パックマンが無敵状態でいることのできる時間
-pub const PACMAN_POWERED_TIME: f64 = 10.0; // 8 sec
+pub const PACMAN_POWERED_TIME: f64 = 8.0; // 8 sec
+/// パックマンが、無敵状態が切れるのを察知して逃げる時間
+pub const PACMAN_MIDDLE_TIME: f64 = 2.0;
 
 
 /// 純粋なマップ情報
@@ -80,6 +82,8 @@ pub enum PMState {
     Normal,
     /// パワー状態。SenderにStopシグナルを送信すると、Normalに戻るタイマーを無効にできる
     Powered(Sender<time::Message>), // this sender is to stop thread. 
+    /// パワー状態が切れそうになっている状態
+    Middle(Sender<time::Message>),
 }
 
 impl ToString for PMState {
@@ -88,6 +92,7 @@ impl ToString for PMState {
         match *self {
             Self::Normal => "Normal".to_string(),
             Self::Powered(_) => "Powered".to_string(),
+            Self::Middle(_) => "Middle".to_string(),
         }
     }
 }
