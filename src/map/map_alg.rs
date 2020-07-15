@@ -42,10 +42,10 @@ impl MapProcAsGame { // for AI
             players: vec![],
             //pacman: QuanCoord::default(),
             // dont erase.
-            pacman: QuanCoord{ x: 13, y: 13 },
+            pacman: QuanCoord{ x: 13, y: 12 },
             pm_target: 0,
             pm_state: Arc::new(Mutex::new(super::PMState::Normal)),
-            pm_prev_place: QuanCoord{ x: 12, y: 13 },
+            pm_prev_place: QuanCoord{ x: 12, y: 12 },
             comn_prov: None,
             snd: snd,
         }

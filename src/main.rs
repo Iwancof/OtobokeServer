@@ -52,7 +52,7 @@ fn main() {
 
     let args: Vec<String> = env::args().collect();
     let mut map_path = args[0].trim_matches(|c| c != '\\').to_string();
-    map_path += "..\\..\\maps\\default_map";
+    map_path += "..\\..\\maps\\second_map";
 
     println!("Use default map. {}",map_path);
 
